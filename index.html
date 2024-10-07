@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freakmoji Clicker Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>Freakmoji Clicker Game</h1>
+        <p>Click the freakmoji to earn points!</p>
+    </header>
+
+    <main class="game-container">
+        <section class="tree">
+            <div id="freakmoji" class="freakmoji"></div>
+        </section>
+        
+        <section class="game-info">
+            <div class="score-board">
+                <h2>Score</h2>
+                <p>Current Score: <span id="score">0</span></p>
+                <p>Points per Click: <span id="points-per-click">1</span></p>
+            </div>
+    
+            <div class="shop">
+                <h2>Shop</h2>
+                <button id="upgrade-button">Upgrade</button>
+            </div>
+    
+            <button id="finish-button" class="finish-button">Finish Game</button>
+        </div>
+    </main>
+
+    <section id="high-score-board" class="hidden">
+        <h2>High Score Board</h2>
+        <p>Your Score: <span id="final-score"></span></p>
+        <p>Total Clicks: <span id="total-clicks"></span></p>
+        <div id="new-high-score" class="hidden">
+            <p>Congratulations! You've achieved a top 10 high score!</p>
+            <input type="text" id="player-name" maxlength="10" placeholder="Enter your name">
+            <button id="submit-score">Submit Score</button>
+        </div>
+        <ol id="high-scores"></ol>
+        <button id="play-again-button" class="play-again-button">Play Again</button>
+    </section>
+
+    <div id="loading-screen" class="loading-screen">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <script src="js/upgrades.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
