@@ -9,17 +9,25 @@ import { ERAS } from '../content/eras';
 import { fmt, fmtRate, fmtTime, fmtPct } from '../core/format';
 import { maxAffordable, nextParanoiaAt, nodeAvailable, paranoiaGain, producerGps, weaponCost } from '../sim/economy';
 import type { UiSound } from '../audio/engine';
+import { featIcon, featTier, icon, minionIcon, nodeIcon, setIcon, upgradeIcon, upgradeTier, weaponIcon } from './icons';
 
 export type TabId = 'arsenal' | 'minions' | 'upgrades' | 'paranoia' | 'feats' | 'stats';
 
 const TABS: { id: TabId; icon: string; label: string }[] = [
-  { id: 'arsenal', icon: '⚔️', label: 'Arsenal' },
-  { id: 'minions', icon: '🐒', label: 'Minions' },
-  { id: 'upgrades', icon: '✨', label: 'Upgrades' },
-  { id: 'paranoia', icon: '🫣', label: 'Paranoia' },
-  { id: 'feats', icon: '🏆', label: 'Feats' },
-  { id: 'stats', icon: '📊', label: 'Stats' },
+  { id: 'arsenal', icon: 'ui-arsenal', label: 'Arsenal' },
+  { id: 'minions', icon: 'minion-monkey', label: 'Minions' },
+  { id: 'upgrades', icon: 'ui-sparkle', label: 'Upgrades' },
+  { id: 'paranoia', icon: 'ui-paranoia', label: 'Paranoia' },
+  { id: 'feats', icon: 'ui-trophy', label: 'Feats' },
+  { id: 'stats', icon: 'ui-chart', label: 'Stats' },
 ];
+
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+/** A price: the gasp coin (or Paranoia gem) and the amount. */
+function priceTag(amount: HTMLElement | string, currency: 'gasp' | 'paranoia' = 'gasp'): HTMLElement {
+  return h('span', { class: `price-tag ${currency}` }, icon(currency === 'gasp' ? 'ui-gasp' : 'ui-paranoia', 'coin'), amount);
+}
 
 const KIND_COLOR: Record<UpgradeKind, string> = {
   minion: '#ffc61a',
@@ -44,26 +52,30 @@ interface Tip {
   desc: string;
   cost?: string;
   ok?: boolean;
+  icon?: string;
 }
 
 /** Shared tooltip that follows focus/hover. */
 class Tooltip {
   el = h('div', { class: 'tooltip', role: 'tooltip' });
   private name = h('div', { class: 'tt-name' });
-  private desc = h('div');
+  private desc = h('div', { class: 'tt-desc' });
   private cost = h('div', { class: 'tt-cost' });
+  private ico = icon('ui-sparkle', 'tt-ico');
   constructor() {
-    this.el.append(this.name, this.desc, this.cost);
+    this.el.append(this.ico, h('div', { class: 'tt-body' }, this.name, this.desc, this.cost));
     document.body.append(this.el);
   }
   show(target: HTMLElement, tip: Tip): void {
+    this.ico.hidden = !tip.icon;
+    if (tip.icon) setIcon(this.ico, tip.icon);
     setText(this.name, tip.name);
     setText(this.desc, tip.desc);
     setText(this.cost, tip.cost ?? '');
     this.cost.hidden = !tip.cost;
     setClass(this.cost, 'no', tip.ok === false);
     const r = target.getBoundingClientRect();
-    const w = 260;
+    const w = 280;
     let x = r.left + r.width / 2 - w / 2;
     x = Math.max(8, Math.min(innerWidth - w - 8, x));
     this.el.style.left = `${x}px`;
@@ -104,7 +116,7 @@ export class Shop {
       const btn = h('button', {
         class: 'key tab', role: 'tab', id: `tab-${t.id}`, 'aria-selected': 'false', 'aria-controls': 'tab-body',
         onclick: () => this.select(t.id),
-      }, h('span', { class: 'ti', 'aria-hidden': 'true', text: t.icon }), t.label, dot) as HTMLButtonElement;
+      }, icon(t.icon, 'ti'), h('span', { class: 'tl', text: t.label }), dot) as HTMLButtonElement;
       this.tabBtns.set(t.id, btn);
       this.dots.set(t.id, dot);
       tabs.append(btn);
@@ -233,7 +245,11 @@ export class Shop {
     const i = g.nextWeapon();
     const cur = s.weapon >= 0 ? WEAPONS[s.weapon] : null;
     this.body.append(
-      h('p', { class: 'hint', text: cur ? `Equipped: ${cur.emoji} ${cur.name}. Each tier hits harder and changes how your pokes land.` : 'You are poking with one bare finger. Buy a weapon to hit harder.' }),
+      h('div', { class: 'equipped' },
+        h('span', { class: 'socket small' }, icon(weaponIcon(s.weapon))),
+        h('span', {}, h('small', { text: 'Equipped' }), h('b', { text: cur ? cur.name : 'One bare finger' })),
+        h('p', { text: cur ? 'Each tier hits harder and changes how your pokes land.' : 'Buy a weapon to hit harder.' }),
+      ),
     );
     if (i >= 0) {
       const w = WEAPONS[i];
@@ -242,21 +258,22 @@ export class Shop {
       const card = h(
         'button',
         { class: 'key row featured', onclick: () => g.buyWeapon() },
-        h('span', { class: 'emoji', text: unlocked ? w.emoji : '🔒' }),
+        h('span', { class: 'spotlight' }, icon(unlocked ? weaponIcon(i) : 'ui-lock', unlocked ? '' : 'silhouette')),
         h(
           'span',
-          {},
+          { class: 'featured-text' },
+          h('div', { class: 'kicker', text: unlocked ? `Next weapon · ${w.family}` : 'Locked' }),
           h('div', { class: 'name', text: unlocked ? w.name : '???' }),
           h('div', { class: 'sub', text: unlocked ? `Base poke ${fmt(s.weapon >= 0 ? WEAPONS[s.weapon].damage : 1)} → ${fmt(w.damage)}` : `Unlocks in Era ${ERAS[w.era].numeral}: ${ERAS[w.era].name}` }),
           unlocked ? h('div', { class: 'flavor', text: w.flavor }) : null,
         ),
-        h('div', { class: 'buyline' }, h('span', { text: unlocked ? 'Buy and equip' : 'Locked' }), price),
+        h('div', { class: 'buyline' }, h('span', { class: 'buy-label', text: unlocked ? 'Buy and equip' : 'Locked' }), unlocked ? priceTag(price) : null),
       ) as HTMLButtonElement;
       this.body.append(card);
       this.refreshers.push(() => {
         const cost = weaponCost(i, g.mods);
         const ok = unlocked && s.gasps >= cost;
-        setText(price, unlocked ? `${fmt(cost)} gasps` : '');
+        setText(price, unlocked ? fmt(cost) : '');
         setClass(card, 'affordable', ok);
         setClass(card, 'unaffordable', !ok);
         setClass(card, 'locked', !unlocked);
@@ -269,14 +286,14 @@ export class Shop {
       const owned = w.index <= s.weapon;
       const known = owned || w.era <= s.era;
       const span = h('span', {
-        class: `${owned ? '' : 'locked'} ${w.index === s.weapon ? 'current' : ''}`,
-        text: known ? w.emoji : '?',
+        class: `socket small ${owned ? '' : 'locked'} ${w.index === s.weapon ? 'current' : ''} ${known ? '' : 'unknown'}`,
         tabindex: '0',
         'aria-label': known ? w.name : 'Unknown weapon',
-      });
+      }, icon(weaponIcon(w.index), known ? '' : 'silhouette'));
       this.tipHandlers(span, () => ({
-        name: known ? `${w.emoji} ${w.name}` : '???',
+        name: known ? w.name : '???',
         desc: known ? `${w.flavor} Base poke ${fmt(w.damage)}.` : `A weapon from Era ${ERAS[w.era].numeral}.`,
+        icon: known ? weaponIcon(w.index) : 'ui-lock',
       }));
       strip.append(span);
     });
@@ -308,15 +325,17 @@ export class Shop {
       const pi = PRODUCERS.indexOf(p);
       const owned = h('span', { class: 'owned' });
       const sub = h('div', { class: 'sub' });
-      const price = h('div', { class: 'price' });
+      const amount = h('span');
+      const forN = h('small');
+      const price = h('div', { class: 'price' }, priceTag(amount), forN);
       const row = h(
         'button',
         { class: 'key row', onclick: () => g.buyProducer(p.id, this.buyAmount) },
-        h('span', { class: 'emoji', text: p.emoji }),
+        h('span', { class: 'socket' }, icon(minionIcon(p.id)), owned),
         h('span', {}, h('div', { class: 'name', text: p.name }), sub),
-        h('span', {}, owned, price),
+        price,
       ) as HTMLButtonElement;
-      this.tipHandlers(row, () => ({ name: `${p.emoji} ${p.name}`, desc: p.flavor }));
+      this.tipHandlers(row, () => ({ name: p.name, desc: p.flavor, icon: minionIcon(p.id) }));
       this.body.append(row);
       this.refreshers.push(() => {
         const have = s.producers[p.id] ?? 0;
@@ -325,9 +344,10 @@ export class Shop {
         const each = p.baseGps * g.mods.producerMult[pi] * g.mods.gpsMult * g.mods.globalMult;
         const total = producerGps(s, g.mods, pi);
         setText(owned, String(have));
+        setClass(owned, 'zero', have === 0);
         setText(sub, have > 0 ? `${fmtRate(each)}/s each · ${fmtRate(total)}/s total (${fmtPct(g.gpsBase > 0 ? total / g.gpsBase : 0)})` : `+${fmtRate(each)}/s each`);
-        price.innerHTML = '';
-        price.append(`${fmt(cost)}`, h('small', { text: n > 1 ? `for ${n}` : 'gasps' }));
+        setText(amount, fmt(cost));
+        setText(forN, n > 1 ? `for ${n}` : '');
         const ok = s.gasps >= cost;
         setClass(row, 'affordable', ok);
         setClass(row, 'unaffordable', !ok);
@@ -337,7 +357,7 @@ export class Shop {
     if (teaser) {
       this.body.append(
         h('div', { class: 'key row teaser', 'aria-disabled': 'true' },
-          h('span', { class: 'emoji', text: teaser.emoji }),
+          h('span', { class: 'socket' }, icon(minionIcon(teaser.id), 'silhouette')),
           h('span', {}, h('div', { class: 'name', text: '???' }), h('div', { class: 'sub', text: `Arrives in Era ${ERAS[teaser.era].numeral}` })),
           h('span'),
         ),
@@ -354,11 +374,12 @@ export class Shop {
     if (!avail.length) this.body.append(h('p', { class: 'hint', text: 'Upgrades appear as you poke, buy minions and reach new eras.' }));
     const grid = h('div', { class: 'grid' });
     for (const u of avail) {
-      const tile = h('button', { class: 'key tile', 'aria-label': `${u.name}: ${u.desc}` },
-        h('span', { 'aria-hidden': 'true', text: u.icon }),
-        h('span', { class: 'kind', style: { background: KIND_COLOR[u.kind] } }),
+      const tier = upgradeTier(u);
+      const tile = h('button', { class: `key tile kind-${u.kind}`, 'aria-label': `${u.name}: ${u.desc}`, style: { '--kind': KIND_COLOR[u.kind] } },
+        icon(upgradeIcon(u)),
+        tier ? h('span', { class: 'tier', text: ROMAN[tier - 1] }) : null,
       ) as HTMLButtonElement;
-      const tip = (): Tip => ({ name: u.name, desc: u.desc, cost: `${fmt(u.cost)} gasps`, ok: s.gasps >= u.cost });
+      const tip = (): Tip => ({ name: u.name, desc: u.desc, cost: `${fmt(u.cost)} gasps`, ok: s.gasps >= u.cost, icon: upgradeIcon(u) });
       this.tipHandlers(tile, tip, () => {
         if (g.buyUpgrade(u.id)) this.tooltip.hide();
       });
@@ -371,8 +392,12 @@ export class Shop {
       this.body.append(h('div', { class: 'section-title' }, h('span', { text: `Owned (${owned.length})` })));
       const og = h('div', { class: 'grid' });
       for (const u of owned) {
-        const t = h('button', { class: 'key tile owned', 'aria-label': `${u.name} (owned)` }, h('span', { 'aria-hidden': 'true', text: u.icon }));
-        this.tipHandlers(t, () => ({ name: u.name, desc: u.desc, cost: 'Owned' }));
+        const tier = upgradeTier(u);
+        const t = h('button', { class: `key tile owned kind-${u.kind}`, 'aria-label': `${u.name} (owned)`, style: { '--kind': KIND_COLOR[u.kind] } },
+          icon(upgradeIcon(u)),
+          tier ? h('span', { class: 'tier', text: ROMAN[tier - 1] }) : null,
+        );
+        this.tipHandlers(t, () => ({ name: u.name, desc: u.desc, cost: 'Owned', icon: upgradeIcon(u) }));
         og.append(t);
       }
       this.body.append(og);
@@ -383,8 +408,10 @@ export class Shop {
   private buildParanoia(): void {
     const g = this.game;
     const s = g.state;
-    const gain = h('span');
-    const unspent = h('div', { class: 'big' });
+    const gainNum = h('span');
+    const gain = priceTag(gainNum, 'paranoia');
+    const unspentNum = h('span');
+    const unspent = h('div', { class: 'big' }, icon('ui-paranoia', 'gem'), unspentNum);
     const bonus = h('p');
     const next = h('p');
     const card = h('div', { class: 'prestige-card' },
@@ -394,7 +421,7 @@ export class Shop {
     );
     this.body.append(card);
     this.refreshers.push(() => {
-      setText(unspent, `${fmt(s.paranoia)} 🫣`);
+      setText(unspentNum, fmt(s.paranoia));
       setText(bonus, `Each unspent point adds +${UNSPENT_BONUS * 100}% to all gasps, tapering after ${UNSPENT_SOFTCAP} (now +${fmt(unspentBonus(s.paranoia) * 100)}%). Spending points buys permanent fears below; you can only get them back when you collapse.`);
     });
 
@@ -424,7 +451,8 @@ export class Shop {
     this.body.append(col);
     this.refreshers.push(() => {
       const p = paranoiaGain(s);
-      setText(gain, p > 0 ? `+${fmt(p)} 🫣` : '');
+      setText(gainNum, p > 0 ? `+${fmt(p)}` : '');
+      gain.hidden = p <= 0;
       setText(next, `Next point at ${fmt(nextParanoiaAt(s))} lifetime gasps (now ${fmt(s.lifetimeGasps)}).`);
     });
 
@@ -432,11 +460,11 @@ export class Shop {
     this.body.append(h('div', { class: 'section-title' }, h('span', { text: 'Fears (permanent)' })));
     const mkNode = (n: NodeDef, extra = ''): HTMLButtonElement => {
       const el = h('button', { class: `key node ${extra}`, 'aria-label': `${n.name}: ${n.desc}` },
-        h('span', { class: 'ni', 'aria-hidden': 'true', text: n.icon }),
+        h('span', { class: 'medal' }, icon(nodeIcon(n.id), 'ni')),
         h('span', { class: 'nn', text: n.name }),
-        h('span', { class: 'nc', text: s.nodes[n.id] ? 'Owned' : `${n.cost} 🫣` }),
+        s.nodes[n.id] ? h('span', { class: 'nc', text: 'Owned' }) : h('span', { class: 'nc' }, priceTag(String(n.cost), 'paranoia')),
       ) as HTMLButtonElement;
-      this.tipHandlers(el, () => ({ name: n.name, desc: n.desc, cost: s.nodes[n.id] ? 'Owned' : `${n.cost} Paranoia`, ok: s.paranoia >= n.cost }), () => {
+      this.tipHandlers(el, () => ({ name: n.name, desc: n.desc, cost: s.nodes[n.id] ? 'Owned' : `${n.cost} Paranoia`, ok: s.paranoia >= n.cost, icon: nodeIcon(n.id) }), () => {
         if (g.buyNode(n.id)) this.update();
         else this.cb.sound('deny');
       });
@@ -474,9 +502,10 @@ export class Shop {
     for (const a of sorted) {
       const has = !!s.achievements[a.id];
       const hidden = a.secret && !has;
+      const tier = featTier(a.id);
       this.body.append(
-        h('div', { class: `feat ${has ? '' : 'locked'}` },
-          h('span', { class: 'fi', 'aria-hidden': 'true', text: hidden ? '❔' : a.icon }),
+        h('div', { class: `feat ${has ? '' : 'locked'} ${tier >= 0 ? `medal-${Math.min(3, tier)}` : ''}` },
+          h('span', { class: 'medal' }, icon(hidden ? 'ui-secret' : featIcon(a.id), has ? '' : 'silhouette')),
           h('span', {}, h('div', { class: 'fn', text: hidden ? 'Secret feat' : a.name }), h('div', { class: 'fd', text: hidden ? 'Keep messing with the Freakmoji.' : a.desc })),
         ),
       );
@@ -516,7 +545,7 @@ export class Shop {
     if (!s.records.length) this.body.append(h('p', { class: 'hint', text: 'Collapse a timeline to record it here.' }));
     else {
       const t = h('table', { class: 'records' }, h('tr', {}, h('th', { text: '#' }), h('th', { text: 'Gasps' }), h('th', { text: 'Era' }), h('th', { text: 'Time' })));
-      s.records.forEach((r) => t.append(h('tr', {}, h('td', { text: String(r.timeline) }), h('td', { text: fmt(r.gasps) }), h('td', { text: r.victory ? '🌌 Broken' : ERAS[r.era].numeral }), h('td', { text: fmtTime(r.duration) }))));
+      s.records.forEach((r) => t.append(h('tr', {}, h('td', { text: String(r.timeline) }), h('td', { text: fmt(r.gasps) }), h('td', { text: r.victory ? 'Broken' : ERAS[r.era].numeral }), h('td', { text: fmtTime(r.duration) }))));
       this.body.append(t);
     }
 

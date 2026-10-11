@@ -10,6 +10,7 @@ import { Hud } from './ui/hud';
 import { Shop } from './ui/shop';
 import { Announcer, Toasts, openSettings, showEraCard, showTitle } from './ui/overlays';
 import { h } from './ui/dom';
+import { abilityIcon, featIcon, installIconStyles } from './ui/icons';
 import { ABILITIES, ABILITY_BY_ID, type AbilityId } from './content/abilities';
 import { ACHIEVEMENT_BY_ID } from './content/achievements';
 import { ERAS, FINAL_BOSS } from './content/eras';
@@ -67,6 +68,7 @@ const stageEl = h('main', { class: 'stage', 'aria-label': 'The arena' }, canvas,
 const app = h('div', { id: 'app' }, stageEl);
 document.body.append(app);
 
+installIconStyles();
 const toasts = new Toasts();
 const announcer = new Announcer();
 const audio = new AudioEngine();
@@ -244,11 +246,11 @@ try {
 } catch {
   seenHints = {};
 }
-function hint(id: string, title: string, body: string): void {
+function hint(id: string, title: string, body: string, iconId?: string): void {
   if (seenHints[id]) return;
   seenHints[id] = true;
   store.setItem(HINTS_KEY, JSON.stringify(seenHints));
-  toasts.push(title, body, '', 7000);
+  toasts.push(title, body, '', 7000, iconId);
 }
 
 // ── Events → presentation ──
@@ -259,19 +261,19 @@ function react(events: GameEvent[]): void {
   for (const e of events) {
     switch (e.type) {
       case 'weakSpot':
-        hint('weak', '🎯 Weak spot!', 'Poke the glowing target on its face for a guaranteed critical hit.');
+        hint('weak', 'Weak spot!', 'Poke the glowing target on its face for a guaranteed critical hit.', 'feat-wk');
         break;
       case 'freakOutStart':
-        hint('freakout', '😱 Freak Out!', 'Your pokes are tripled and production doubled for a few seconds. Keep poking to fill the meter again.');
+        hint('freakout', 'Freak Out!', 'Your pokes are tripled and production doubled for a few seconds. Keep poking to fill the meter again.', 'feat-fo');
         break;
       case 'buyProducer':
         if (game.state.producers[e.id] === e.amount) {
-          hint('minion', '🐒 Your first minion', 'Minions poke the Freakmoji for you, even while you are away. Upgrades double their output.');
+          hint('minion', 'Your first minion', 'Minions poke the Freakmoji for you, even while you are away. Upgrades double their output.', `minion-${e.id}`);
         }
         break;
       case 'achievement': {
         const a = ACHIEVEMENT_BY_ID[e.id];
-        toasts.push(`${a.icon} Feat unlocked: ${a.name}`, `${a.desc} (+1% gasps)`, 'gold');
+        toasts.push(`Feat unlocked: ${a.name}`, `${a.desc} (+1% gasps)`, 'gold', 4200, featIcon(a.id));
         announcer.say(`Feat unlocked: ${a.name}`);
         break;
       }
@@ -280,7 +282,7 @@ function react(events: GameEvent[]): void {
         setTimeout(() => showEraCard(stageEl, e.to, settings.reducedMotion), 900);
         for (const a of ABILITIES) {
           if (a.unlockEra === e.to) {
-            setTimeout(() => hint(`ability-${a.id}`, `${a.icon} New ability: ${a.name} (key ${a.key})`, a.describe(1)), 4200);
+            setTimeout(() => hint(`ability-${a.id}`, `New ability: ${a.name} (key ${a.key})`, a.describe(1), abilityIcon(a.id)), 4200);
           }
         }
         announcer.say(`Era ${ERAS[e.to].numeral}: ${ERAS[e.to].name}`, true);
@@ -288,13 +290,13 @@ function react(events: GameEvent[]): void {
         break;
       case 'gateReady': {
         const b = e.final ? FINAL_BOSS : ERAS[e.era].boss!;
-        toasts.push(`⚠️ ${b.name} blocks the way`, 'Press the challenge button (or B) when you are ready.', 'warn');
+        toasts.push(`${b.name} blocks the way`, 'Press the challenge button (or B) when you are ready.', 'warn', 4200, 'ui-boss');
         announcer.say(`${b.name} is ready to fight. Press B to challenge.`, true);
         break;
       }
       case 'bossWin':
         if (e.final) {
-          toasts.push('🌌 Reality: broken', 'You beat The Composed One. Collapse the timeline to push even further.', 'gold', 9000);
+          toasts.push('Reality: broken', 'You beat The Composed One. Collapse the timeline to push even further.', 'gold', 9000, 'feat-victory');
           announcer.say('Reality broken!', true);
           persist();
         } else announcer.say('Composure shattered!', true);
@@ -302,21 +304,21 @@ function react(events: GameEvent[]): void {
       case 'bossFail':
         if (bossAbandoned) {
           bossAbandoned = false;
-          toasts.push('Fight abandoned', 'You left mid-fight, so the boss regained its composure. Challenge it again when ready.', 'warn', 6000);
+          toasts.push('Fight abandoned', 'You left mid-fight, so the boss regained its composure. Challenge it again when ready.', 'warn', 6000, 'ui-boss');
         } else {
-          toasts.push('Composure held', 'Build up your gasps per second and try again in 15 seconds.', 'warn');
+          toasts.push('Composure held', 'Build up your gasps per second and try again in 15 seconds.', 'warn', 4200, 'ui-boss');
           announcer.say('The boss kept its composure. Try again soon.', true);
         }
         break;
       case 'goldenSpawn':
         announcer.say('A golden Freakmoji appeared! Click it or press G.', true);
-        hint('golden', '🌟 A golden Freakmoji!', 'Catch it before it escapes (click it or press G) for a random bonus.');
+        hint('golden', 'A golden Freakmoji!', 'Catch it before it escapes (click it or press G) for a random bonus.', 'ui-golden');
         break;
       case 'freakOutStart':
         announcer.say('Freak out! Pokes are tripled.');
         break;
       case 'collapse':
-        toasts.push(`🫣 Timeline ${e.timeline} collapsed`, `+${fmt(e.gained)} Paranoia. The Freakmoji remembers nothing, except the fear.`, 'gold', 7000);
+        toasts.push(`Timeline ${e.timeline} collapsed`, `+${fmt(e.gained)} Paranoia. The Freakmoji remembers nothing, except the fear.`, 'gold', 7000, 'ui-paranoia');
         announcer.say(`Timeline collapsed. Gained ${e.gained} Paranoia.`, true);
         shop.select('arsenal', true);
         break;
@@ -386,7 +388,7 @@ function advanceSim(seconds: number): void {
     const report = game.elapse(seconds);
     acc = 0;
     if (report && report.gained > 0) {
-      toasts.push('While this tab was asleep', `Your minions earned ${fmt(report.gained)} gasps (${fmtTime(report.credited)} at ${Math.round(report.efficiency * 100)}%).`, 'gold');
+      toasts.push('While this tab was asleep', `Your minions earned ${fmt(report.gained)} gasps (${fmtTime(report.credited)} at ${Math.round(report.efficiency * 100)}%).`, 'gold', 4200, 'ui-gasp');
     }
   } else {
     acc += seconds;
@@ -398,9 +400,12 @@ function advanceSim(seconds: number): void {
   }
 }
 
+let lastFrameAt = performance.now();
+
 function frame(now: number): void {
   const dt = Math.min(Math.max(0, (now - last) / 1000), 30 * 60);
   last = now;
+  lastFrameAt = performance.now();
   syncSim();
   react(game.drainEvents());
   const vdt = Math.min(dt, 0.1);
@@ -421,22 +426,29 @@ function frame(now: number): void {
 }
 requestAnimationFrame(frame);
 
-// Keep the economy honest while hidden (rAF pauses); browsers throttle this to ~1/s or slower.
+// Keep the economy honest whenever frames stop coming: hidden tabs (rAF
+// pauses; browsers throttle this timer to ~1/s or slower there) and frames
+// stalled behind a slow GPU. Events (toasts, boss outcomes) still land.
 setInterval(() => {
-  if (document.visibilityState !== 'hidden') return;
+  if (document.visibilityState !== 'hidden' && performance.now() - lastFrameAt < 400) return;
   syncSim();
-  // Still deliver events (toasts, achievements); visuals also reconcile from state.
   react(game.drainEvents());
-}, 1000);
+}, 250);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     // A boss fight can't be won (or lost) while nobody is watching.
     if (started && game.abandonBoss()) bossAbandoned = true;
+    // Apply it now (the shell comes off) rather than on a frame that may never come.
+    react(game.drainEvents());
     persist();
     audio.suspend();
   } else {
     audio.resume();
+    // Catch up and match the scene to the state straight away on return.
+    syncSim();
+    react(game.drainEvents());
+    if (view instanceof GameScene) view.syncState(game);
   }
 });
 
@@ -447,7 +459,7 @@ showTitle(
     audio.unlock();
     started = true;
     last = simClock = performance.now();
-    if (offline && offline.gained > 0) toasts.push('Welcome back', `Your minions earned ${fmt(offline.gained)} gasps while you were away.`, 'gold');
+    if (offline && offline.gained > 0) toasts.push('Welcome back', `Your minions earned ${fmt(offline.gained)} gasps while you were away.`, 'gold', 4200, 'ui-gasp');
     announcer.say('Poke the Freakmoji: click it, tap it, or press Space.', true);
     canvas.focus?.();
   },

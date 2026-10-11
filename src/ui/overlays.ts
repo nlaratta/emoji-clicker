@@ -4,6 +4,7 @@ import type { Settings, Quality } from '../app/settings';
 import type { OfflineReport } from '../sim/game';
 import { ERAS } from '../content/eras';
 import type { UiSound } from '../audio/engine';
+import { eraIcon, icon } from './icons';
 
 // ── Title / continue screen ───────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export function showTitle(info: TitleInfo, onStart: () => void): HTMLElement {
   const warn = info.warning ? h('div', { class: 'away', role: 'alert', text: info.warning }) : null;
   const btn = h('button', { class: 'key yellow start', autofocus: true }, info.returning ? 'Keep poking' : 'Start poking') as HTMLButtonElement;
   const el = h('div', { class: 'overlay title-screen', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Freakmoji Clicker' },
-    h('div', { class: 'title-card' },
+    h('div', { class: 'title-card plate' },
       h('h1', { class: 'logo', text: 'Freakmoji' }),
       h('div', { class: 'logo-sub', text: 'Clicker: Reality Breach' }),
       h('p', { class: 'tagline', text: info.returning
@@ -37,7 +38,11 @@ export function showTitle(info: TitleInfo, onStart: () => void): HTMLElement {
       warn,
       btn,
       away,
-      h('p', { class: 'fineprint', text: 'Click, tap or press Space to poke · 1–5 abilities · sound on for the full effect' }),
+      h('p', { class: 'fineprint controls' },
+        h('span', {}, h('kbd', { text: 'Click' }), ' or ', h('kbd', { text: 'Space' }), ' poke'),
+        h('span', {}, h('kbd', { text: '1–5' }), ' abilities'),
+        h('span', {}, 'Sound on for the full effect'),
+      ),
     ),
   );
   const go = (): void => {
@@ -55,8 +60,11 @@ export function showTitle(info: TitleInfo, onStart: () => void): HTMLElement {
 export class Toasts {
   readonly root = h('div', { class: 'toasts', 'aria-hidden': 'true' });
 
-  push(title: string, body = '', variant: '' | 'gold' | 'warn' = '', life = 4200): void {
-    const t = h('div', { class: `toast ${variant}` }, h('strong', { text: title }), body);
+  push(title: string, body = '', variant: '' | 'gold' | 'warn' = '', life = 4200, iconId?: string): void {
+    const t = h('div', { class: `toast ${variant} ${iconId ? 'with-icon' : ''}` },
+      iconId ? h('span', { class: 'toast-medal' }, icon(iconId)) : null,
+      h('div', { class: 'toast-text' }, h('strong', { text: title }), body),
+    );
     this.root.prepend(t);
     while (this.root.children.length > 3) this.root.lastElementChild?.remove();
     setTimeout(() => {
@@ -83,6 +91,7 @@ export class Announcer {
 export function showEraCard(host: HTMLElement, era: number, reduced: boolean): void {
   const e = ERAS[era];
   const card = h('div', { class: `era-card ${reduced ? 'static' : ''}`, 'aria-hidden': 'true' },
+    h('div', { class: 'emblem-wrap' }, icon(eraIcon(era), 'emblem')),
     h('div', { class: 'num', text: `Era ${e.numeral}` }),
     h('div', { class: 'title', text: e.name }),
     h('div', { class: 'tag', text: e.tagline }),
@@ -168,7 +177,7 @@ export function openSettings(settings: Settings, cb: SettingsCallbacks): void {
   };
   const el = h('div', { class: 'overlay drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'settings-title' },
     h('div', { class: 'sheet' },
-      h('h2', { id: 'settings-title' }, 'Settings', h('button', { class: 'key icon-key', 'aria-label': 'Close settings', onclick: close }, '✕')),
+      h('h2', { id: 'settings-title' }, h('span', { class: 'sheet-title' }, icon('ui-settings'), 'Settings'), h('button', { class: 'key icon-key close', 'aria-label': 'Close settings', onclick: close }, h('span', { class: 'x', 'aria-hidden': 'true' }))),
       h('div', { class: 'section-title' }, h('span', { text: 'Sound' })),
       toggle('Sound', 'muted', true),
       slider('Master volume', 'master'),
@@ -207,7 +216,7 @@ export function openSettings(settings: Settings, cb: SettingsCallbacks): void {
         resetBtn,
       ),
       status,
-      h('p', { class: 'fineprint', text: 'Freakmoji Clicker: Reality Breach · All sound and art is generated in your browser · MIT licensed' }),
+      h('p', { class: 'fineprint', text: 'Freakmoji Clicker: Reality Breach · Models built procedurally in Blender, icons illustrated with a local image model, sound synthesised in your browser · MIT licensed' }),
     ),
   );
   el.addEventListener('click', (e) => {

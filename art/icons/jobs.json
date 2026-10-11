@@ -1,0 +1,792 @@
+[
+ {
+  "id": "weapon-0",
+  "prompt": "a clenched cartoon fist with tan skin and knuckle bandage tape, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-1",
+  "prompt": "a knobbly forked wooden stick with a single leaf, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-2",
+  "prompt": "a sharp chipped flint stone shard, grey and amber, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-3",
+  "prompt": "a big chunky bone club, ivory white, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-4",
+  "prompt": "a primitive stone axe, grey stone head lashed to a wooden handle with leather straps, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-5",
+  "prompt": "a bronze dagger with a leaf-shaped blade and leather-wrapped grip, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-6",
+  "prompt": "an iron sword with a steel blade, brass crossguard and red leather grip, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-7",
+  "prompt": "a curved wooden longbow with a nocked arrow with red fletching, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-8",
+  "prompt": "a wooden crossbow with iron fittings and a loaded bolt, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-9",
+  "prompt": "an antique flintlock pistol with a walnut grip and brass details, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-10",
+  "prompt": "a long antique musket rifle with a small puff of white smoke at the muzzle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-11",
+  "prompt": "a cowboy revolver with an ivory grip and a silver cylinder, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-12",
+  "prompt": "a brass gatling gun with six barrels and a crank handle on a little stand, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-13",
+  "prompt": "a bundle of three red dynamite sticks tied with string and a sparkling lit fuse, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-14",
+  "prompt": "a green pineapple hand grenade with a silver pin ring, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-15",
+  "prompt": "a chunky black machine gun with an ammo belt of brass bullets, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-16",
+  "prompt": "a flamethrower with a red fuel tank and a small orange flame at the nozzle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-17",
+  "prompt": "a green army bazooka rocket launcher tube with a rocket peeking out, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-18",
+  "prompt": "a round olive green land mine with a red pressure button, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-19",
+  "prompt": "a chunky cartoon army tank, olive green with a big round turret, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-20",
+  "prompt": "a chunky propeller fighter plane, silver with red stripes and a shark mouth, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-21",
+  "prompt": "a big round heavy bomber airplane, olive drab with four propellers, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-22",
+  "prompt": "a white guided missile with red fins and a pointed nose, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-23",
+  "prompt": "a nuclear warhead bomb, matte grey with a yellow and black radiation symbol, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-24",
+  "prompt": "a giant hydrogen bomb with glowing cyan seams and tail fins, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-25",
+  "prompt": "a satellite with blue solar panel wings and a gold foil body, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-26",
+  "prompt": "a sci-fi laser cannon, white armor plates and a glowing red barrel, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-27",
+  "prompt": "a sci-fi plasma rifle with a glowing purple energy core, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-28",
+  "prompt": "a sci-fi railgun with copper coils crackling with blue electricity, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-29",
+  "prompt": "a sci-fi particle beam emitter dish with a sparkling white energy ball, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-30",
+  "prompt": "a glowing antimatter bomb, a magenta energy sphere held in a chrome cage, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-31",
+  "prompt": "a sci-fi gravity gun with a red and silver horseshoe magnet head and swirling rings, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-32",
+  "prompt": "a brass hourglass machine with glowing blue sand and little gears, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-33",
+  "prompt": "a glass canister full of glowing green nanobots, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-34",
+  "prompt": "a glowing translucent cyan quantum die with circuit pips, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-35",
+  "prompt": "a dark matter projector, an obsidian orb with swirling violet energy in a bronze mount, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-36",
+  "prompt": "a tiny black hole with an orange accretion ring held in a silver gyroscope frame, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-37",
+  "prompt": "an exploding star bursting with light inside a cracked glass sphere, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-38",
+  "prompt": "a magic wand topped with a swirling rainbow spiral vortex, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "weapon-39",
+  "prompt": "a cosmic cannon with a glowing spiral galaxy swirling in its barrel, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-monkey",
+  "prompt": "a small chunky cartoon monkey with a peach face, chestnut brown fur and big round black eyes, holding a long pointy wooden stick, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-gorilla",
+  "prompt": "a stocky charcoal grey cartoon gorilla with huge forearms and a silver back, lifting a round boulder over its head, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-trebuchet",
+  "prompt": "a small wooden medieval trebuchet siege engine with a long throwing arm and a stone counterweight box, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-knight",
+  "prompt": "a tiny chunky knight in shiny steel armor with a red plume, riding a stout chestnut horse with a blue caparison, holding a striped lance, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-steam",
+  "prompt": "a squat little brass steam robot with a round boiler belly, stubby legs, a chimney on its head and a piston arm, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-factory",
+  "prompt": "a small red brick factory with a sawtooth roof, a smoking chimney and a giant white glove on a mechanical arm, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-turret",
+  "prompt": "a compact olive green auto turret on a tripod with twin gun barrels and a red sensor eye, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-jet",
+  "prompt": "a chunky cartoon fighter jet, silver with red stripes, swept wings, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-drone",
+  "prompt": "a cute white quadcopter drone with four rotors and a glowing cyan camera eye, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-orbital",
+  "prompt": "a satellite with blue solar panel wings and a large red laser lens, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-moon",
+  "prompt": "a cratered pale yellow moon with a huge black cannon barrel sticking out of it, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-blackhole",
+  "prompt": "a black hole swirling inside a chunky metal ring machine with a glowing orange accretion disk, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-printer",
+  "prompt": "a chunky retro office printer printing out a glowing rainbow page, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "minion-paradox",
+  "prompt": "a glowing infinity symbol shaped machine made of brass pipes and teal light, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_knuckles",
+  "prompt": "a cartoon fist in a white glove cracking its knuckles with little impact sparks, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_finger",
+  "prompt": "a cartoon hand in a white glove pointing one extra long index finger with a sharp shine, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_waiver",
+  "prompt": "a rolled parchment contract with a red wax seal and a feather quill, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_brass",
+  "prompt": "shiny brass knuckles with four round finger holes, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_strain",
+  "prompt": "a flexing cartoon arm bicep with a sweat band, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_haptic",
+  "prompt": "a vibrating smartphone with motion lines and a glowing screen, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_cosmic",
+  "prompt": "a cartoon hand with glowing starry cosmic fingertips and tiny stars, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-c_god",
+  "prompt": "a giant golden glowing pointing finger emerging from a fluffy cloud, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-k_rabbit",
+  "prompt": "a lucky rabbit foot keychain, white fur with a gold cap and chain, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-k_pressure",
+  "prompt": "a red map pin pushed into a round pincushion, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-k_glassjaw",
+  "prompt": "a chunky glass boxing mouthguard with a big crack and a sparkle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-k_mass",
+  "prompt": "a flaming meteor comet with a fiery orange tail, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-o_rhythm",
+  "prompt": "a red marching snare drum with gold rim and crossed drumsticks, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-o_metronome",
+  "prompt": "a wooden pyramid metronome with a swinging brass pendulum, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-o_drumline",
+  "prompt": "a shiny brass trumpet with a little red banner, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-o_flow",
+  "prompt": "a curling blue ocean wave with white foam, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-f_espresso",
+  "prompt": "a tiny espresso cup with steam connected to a medical IV drip bag, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-f_panic",
+  "prompt": "a big black subwoofer speaker with a red glowing cone, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-f_adrenal",
+  "prompt": "a big medical syringe full of glowing red liquid, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-w_anatomy",
+  "prompt": "an open anatomy textbook showing a smiley face diagram, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-w_phd",
+  "prompt": "a black graduation cap with a gold tassel on a rolled diploma, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-w_xray",
+  "prompt": "x-ray goggles with glowing green lenses and a leather strap, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-g_lure",
+  "prompt": "a shiny golden fishing lure hook with a sparkle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-g_leaf",
+  "prompt": "a pair of golden gloves covered in gold leaf, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-g_midas",
+  "prompt": "a golden crown with three round rubies, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_monkeyrock",
+  "prompt": "a small brown monkey riding on top of a grey boulder, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_steamsiege",
+  "prompt": "a brass steam boiler with a wooden catapult arm, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_mechknights",
+  "prompt": "a chunky robot knight helmet with a red plume and glowing visor, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_airsupport",
+  "prompt": "a fighter jet taking off from a little runway, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_skynet",
+  "prompt": "a satellite dish antenna with radio waves, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_tides",
+  "prompt": "a black hole slurping a long noodle of blue sea water like spaghetti, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_ouroboros",
+  "prompt": "a green serpent eating its own tail forming a circle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-s_oldguard",
+  "prompt": "a military medal with a red and gold ribbon, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_medieval",
+  "prompt": "a round wooden shield with a bronze boss and a red stripe, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_industrial",
+  "prompt": "a red steam locomotive engine with a puff of steam, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_modern",
+  "prompt": "a glass skyscraper office tower, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_future",
+  "prompt": "a retro purple floppy disk with a glowing neon label, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_cosmic",
+  "prompt": "a brass telescope on a tripod pointed at a star, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "up-e_reality",
+  "prompt": "a blue glass evil eye amulet charm, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ability-haymaker",
+  "prompt": "a big red boxing glove punching forward with motion lines, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ability-rally",
+  "prompt": "a red and white megaphone with sound waves, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ability-flurry",
+  "prompt": "a swirling grey tornado with small sparkles, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ability-timewarp",
+  "prompt": "a golden pocket watch with clock hands spinning fast and a blue time swirl, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ability-singularity",
+  "prompt": "a purple swirling vortex spiral collapsing into a bright point, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-dejavu",
+  "prompt": "a purple eye with a spiral iris looking through a keyhole, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-t_trigger",
+  "prompt": "a cartoon index finger hovering over a big red button, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-t_tic",
+  "prompt": "a jittery yellow lightning bolt, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-t_vigil",
+  "prompt": "a red and white archery target with a dart in the bullseye, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-t_flight",
+  "prompt": "a pounding red heart with motion lines, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-t_hair",
+  "prompt": "a lit red firecracker with a sparkling fuse, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-b_sweats",
+  "prompt": "a sleepy crescent moon wearing a nightcap with a sweat drop, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-b_memory",
+  "prompt": "a pink cartoon brain with a white sweatband, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-b_overthink",
+  "prompt": "a tangled ball of purple yarn thoughts in a cloud, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-b_insomnia",
+  "prompt": "a wide-eyed brown owl with huge yellow eyes, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-b_delegate",
+  "prompt": "a wooden clipboard with a checklist and a pencil, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-u_charm",
+  "prompt": "a green four-leaf clover with a golden shine, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-u_fuse",
+  "prompt": "a round black cartoon bomb with a very short lit fuse, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-u_bleed",
+  "prompt": "a cracked hourglass leaking glowing red sand, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-u_midas",
+  "prompt": "a hand touching a stack of gold coins that sparkle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-u_slip",
+  "prompt": "a banana peel slipping into a glowing purple portal, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "node-cap_dread",
+  "prompt": "a terrified yellow cartoon face screaming with hands on its cheeks, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-clk",
+  "prompt": "a cartoon finger poking a round red button, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-gsp",
+  "prompt": "a yellow cartoon face with a wide open shocked O mouth, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-gps",
+  "prompt": "a brass pressure gauge with the needle in the red, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-cmb",
+  "prompt": "a chain of three linked flaming rings, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-crt",
+  "prompt": "a jagged red and yellow comic impact burst, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-wk",
+  "prompt": "a pink crosshair reticle over a bullseye, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-gld",
+  "prompt": "a shining golden star with a happy shocked face, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-fo",
+  "prompt": "a cartoon face screaming in panic with sweat drops, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-tl",
+  "prompt": "a looping arrow wrapped around a little clock, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-victory",
+  "prompt": "a cracked glass globe of the universe with stars spilling out, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-allweapons",
+  "prompt": "a weapon rack holding a sword, a bow and a ray gun, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-min100",
+  "prompt": "a rising green bar chart with an arrow, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-min500",
+  "prompt": "a tall purple corporate tower with a golden banana logo, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-allminions",
+  "prompt": "an open filing box full of colorful folders, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-perfect",
+  "prompt": "a golden boxing glove with a sparkle, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-abil50",
+  "prompt": "a control panel with colorful buttons and dials, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-para100",
+  "prompt": "a cartoon face peeking nervously between its fingers, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-hands",
+  "prompt": "a raised white glove hand saying stop, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-eyes",
+  "prompt": "a pair of big cartoon eyeballs looking sideways, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-patience",
+  "prompt": "a calm meditating cartoon monk sitting on a cushion, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "feat-bighit",
+  "prompt": "a giant red fist smashing with a starburst, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-0",
+  "prompt": "a stone age emblem: a round sandstone medallion with a carved flint spear and a campfire, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-1",
+  "prompt": "a medieval emblem: a heraldic shield with a castle tower and a red banner, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-2",
+  "prompt": "an industrial emblem: a brass cog wheel with a smoking chimney, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-3",
+  "prompt": "a modern emblem: a city skyline badge with a searchlight beam at night, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-4",
+  "prompt": "a synthwave emblem: a neon pink and cyan striped sun over a grid, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-5",
+  "prompt": "a cosmic emblem: a ringed planet with a small rocket orbiting it, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "era-6",
+  "prompt": "a surreal emblem: a melting clock floating inside a cracked glass portal, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-gasp",
+  "prompt": "a round golden coin embossed with a shocked cartoon face with wide eyes and an open O mouth, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-paranoia",
+  "prompt": "a nervous purple gem shaped like an eye with a tiny sweat drop, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-rate",
+  "prompt": "a golden hourglass with sparkling sand, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-poke",
+  "prompt": "a white glove hand pointing its index finger forward, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-lock",
+  "prompt": "a chunky iron padlock, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-secret",
+  "prompt": "a purple question mark made of glossy candy, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-settings",
+  "prompt": "a chunky silver cog wheel, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-sound",
+  "prompt": "a brass gramophone horn, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-mute",
+  "prompt": "a brass gramophone horn with a red cross, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-golden",
+  "prompt": "a shiny golden smiley ball with a shocked face and sparkles, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-trophy",
+  "prompt": "a golden trophy cup, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-chart",
+  "prompt": "an old paper scroll with a hand-drawn rising chart, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-sparkle",
+  "prompt": "a four-pointed golden sparkle star with a small upward arrow, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-arsenal",
+  "prompt": "a crossed wooden club and a sword, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ },
+ {
+  "id": "ui-boss",
+  "prompt": "a cracked stone mask with a calm expression, stylized 3D game icon, chunky toy-like proportions, smooth rounded beveled shapes, soft matte clay and painted vinyl materials, warm saturated colors, soft studio lighting from the upper left, gentle rim light, single object centered with generous margin, plain flat light grey background, no text, no frame, no cast shadow",
+  "seed": 7
+ }
+]

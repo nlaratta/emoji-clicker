@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { FinalShader } from './post';
+import { Bloom, BloomPass, FinalShader } from './post';
 
 export type QualityTier = 'low' | 'medium' | 'high';
 
@@ -21,7 +19,7 @@ export class Stage {
   readonly rim: THREE.DirectionalLight;
   readonly hemi: THREE.HemisphereLight;
   readonly final: ShaderPass;
-  readonly bloom: UnrealBloomPass;
+  readonly bloom = new Bloom();
   private composer: EffectComposer;
   tier: QualityTier = 'medium';
   width = 1;
@@ -35,6 +33,7 @@ export class Stage {
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.scene.fog = new THREE.Fog(0x8a4a4a, 60, 260);
 
     this.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 400);
     this.camera.position.set(0, 1.6, 7.2);
@@ -47,36 +46,55 @@ export class Stage {
     this.hemi = new THREE.HemisphereLight(0xfff2dd, 0x40305a, 0.7);
     this.key = new THREE.DirectionalLight(0xfff4e0, 2.1);
     this.key.position.set(-3.5, 6, 5);
+    // One shadow-casting key light, its frustum fitted to the arena and the
+    // nearby props (distant scenery relies on baked AO instead).
     this.key.castShadow = true;
-    this.key.shadow.mapSize.set(1024, 1024);
-    this.key.shadow.camera.left = -4;
-    this.key.shadow.camera.right = 4;
-    this.key.shadow.camera.top = 4;
-    this.key.shadow.camera.bottom = -4;
-    this.key.shadow.camera.near = 1;
-    this.key.shadow.camera.far = 20;
-    this.key.shadow.bias = -0.0005;
-    this.key.shadow.radius = 4;
+    this.key.shadow.mapSize.set(2048, 2048);
+    const sc = this.key.shadow.camera;
+    sc.left = -11;
+    sc.right = 11;
+    sc.top = 11;
+    sc.bottom = -11;
+    sc.near = 2;
+    sc.far = 60;
+    this.key.shadow.bias = -0.0006;
+    this.key.shadow.normalBias = 0.025;
+    this.key.shadow.radius = 3;
+    this.key.target.position.set(0, 0, -2);
+    this.scene.add(this.key.target);
     this.rim = new THREE.DirectionalLight(0xff9a3c, 1.5);
     this.rim.position.set(4, 2.5, -6);
     const fill = new THREE.DirectionalLight(0xbfd6ff, 0.5);
     fill.position.set(3, 1, 6);
     this.scene.add(this.hemi, this.key, this.rim, fill);
 
+    // Scene → bloom pyramid (small targets) → one full-screen final pass that
+    // composites the bloom, applies the screen effects and tone maps.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.5, 2.4);
-    this.composer.addPass(this.bloom);
     this.final = new ShaderPass(FinalShader);
+    this.composer.addPass(new BloomPass(this.bloom, this.final.uniforms));
     this.composer.addPass(this.final);
-    this.composer.addPass(new OutputPass());
   }
 
   setTier(tier: QualityTier): void {
+    const shadowsChanged = (this.tier === 'low') !== (tier === 'low');
     this.tier = tier;
     this.renderer.shadowMap.enabled = tier !== 'low';
     this.key.castShadow = tier !== 'low';
+    const size = tier === 'high' ? 2048 : 1024;
+    if (this.key.shadow.mapSize.x !== size) {
+      this.key.shadow.mapSize.set(size, size);
+      this.key.shadow.map?.dispose();
+      this.key.shadow.map = null;
+    }
+    if (shadowsChanged) this.renderer.shadowMap.needsUpdate = true;
     this.resize(this.width, this.height);
+  }
+
+  /** Place the key light along `dir` (pointing from the scene toward the light). */
+  setKeyDirection(dir: THREE.Vector3): void {
+    this.key.position.copy(this.key.target.position).addScaledVector(dir, 30);
   }
 
   get pixelRatio(): number {
@@ -93,7 +111,7 @@ export class Stage {
     this.composer.setPixelRatio(pr);
     this.composer.setSize(this.width, this.height);
     const bloomScale = this.tier === 'high' ? 0.5 : 0.35;
-    this.bloom.resolution.set(this.width * pr * bloomScale, this.height * pr * bloomScale);
+    this.bloom.setSize(this.width * pr * bloomScale, this.height * pr * bloomScale);
     this.camera.aspect = this.width / this.height;
     // Keep the horizontal framing constant on narrow screens (continuous, so
     // resizing never jumps): 36° vertical at 1.5:1 and wider, more as it narrows.

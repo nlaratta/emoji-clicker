@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { PRODUCERS } from '../content/producers';
-import { SpriteBatch, type EmojiAtlas, type FlyingEmoji, type SpriteSlot } from './sprites';
-import { Shape, type Particles } from './particles';
+import { PRODUCERS } from '../../content/producers';
+import { SpriteBatch, type EmojiAtlas, type FlyingEmoji, type SpriteSlot } from '../sprites';
+import { Shape, type Particles } from '../particles';
 
 /**
  * Idle production made visible: every minion type you own shows up around
@@ -63,7 +63,8 @@ export interface ImpactFn {
 
 const TARGET = new THREE.Vector3(0, 1.25, 0);
 
-export class Minions {
+/** Emoji-billboard minions: the fallback for types without a 3D model yet. */
+export class SpriteMinions {
   readonly batch: SpriteBatch;
   private groups: Group[] = [];
   private free: SpriteSlot[];
@@ -78,6 +79,8 @@ export class Minions {
   /** Global visual activity scale (quality). */
   activity = 1;
   private pending: { at: number; fn: () => void }[] = [];
+  /** Producer ids drawn elsewhere (as 3D creatures/machines). */
+  readonly skip = new Set<string>();
 
   private later(sec: number, fn: () => void): void {
     if (this.pending.length < 200) this.pending.push({ at: this.time + sec, fn });
@@ -99,7 +102,7 @@ export class Minions {
   /** Sync unit counts with the simulation. */
   sync(producers: Record<string, number>): void {
     for (const g of this.groups) {
-      const owned = producers[g.id] ?? 0;
+      const owned = this.skip.has(g.id) ? 0 : producers[g.id] ?? 0;
       g.owned = owned;
       const want = Math.min(g.vis.max, owned);
       while (g.units.length < want) this.spawnUnit(g, g.units.length);
@@ -125,7 +128,7 @@ export class Minions {
     if (v.attack === 'moon') base.set(-20, v.height, -42);
     if (v.attack === 'pull') base.set(13, v.height, -14);
     Object.assign(slot, {
-      x: base.x, y: base.y, z: base.z, emoji: v.emoji, scale: 0, visible: true, alpha: 1, rot: 0, tint: 1,
+      x: base.x, y: base.y, z: base.z, emoji: `minion-${g.id}`, scale: 0, visible: true, alpha: 1, rot: 0, tint: 1,
       flip: base.x > 0,
     });
     g.units.push({ slot, base, angle, phase: Math.random() * 10, lunge: 0 });
@@ -227,10 +230,10 @@ export class Minions {
         break;
       case 'throw':
         u.lunge = 0.6;
-        this.fly.strike('🪨', from.clone().setY(from.y + 0.4), to.clone(), 0.5, 0.35, () => hit(0.35), from.x > 0);
+        this.fly.strike('weapon-2', from.clone().setY(from.y + 0.4), to.clone(), 0.5, 0.35, () => hit(0.35), from.x > 0);
         break;
       case 'catapult':
-        this.fly.strike('🪨', from.clone().setY(from.y + 1.5), to.clone(), 1.1, 0.65, () => {
+        this.fly.strike('weapon-2', from.clone().setY(from.y + 1.5), to.clone(), 1.1, 0.65, () => {
           hit(0.6);
           p.smoke(to, 3, new THREE.Color(0x8a7a6a));
         }, from.x > 0);
@@ -247,7 +250,7 @@ export class Minions {
         this.later(0.28, () => hit(0.2));
         break;
       case 'slap':
-        this.fly.strike('🖐️', from.clone().setY(from.y + 1), to.clone(), 0.55, 0.55, () => hit(0.5), from.x < 0);
+        this.fly.strike('feat-hands', from.clone().setY(from.y + 1), to.clone(), 0.55, 0.55, () => hit(0.5), from.x < 0);
         break;
       case 'tracer':
       case 'strafe': {
@@ -300,10 +303,10 @@ export class Minions {
         if (Math.random() < 0.3) hit(0.12);
         break;
       case 'paper':
-        this.fly.strike('📄', from.clone().setY(from.y + 0.5), to.clone(), 0.45, 0.4, () => hit(0.3), from.x > 0);
+        this.fly.strike('ui-chart', from.clone().setY(from.y + 0.5), to.clone(), 0.45, 0.4, () => hit(0.3), from.x > 0);
         break;
       case 'clone':
-        this.fly.strike('😳', from.clone(), to.clone(), 0.6, 0.6, () => {
+        this.fly.strike('feat-gsp', from.clone(), to.clone(), 0.6, 0.6, () => {
           hit(0.4);
           p.sparks(to, 8, c, 3);
         }, from.x > 0);
