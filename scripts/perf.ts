@@ -17,7 +17,7 @@ const opt = (k: string, d: string): string => args.find((a) => a.startsWith(`--$
 const eras = (args.find((a) => !a.startsWith('--')) ?? '0,3,6').split(',').map(Number);
 const tier = opt('tier', 'high');
 const soft = args.includes('--soft');
-const URL = opt('url', 'http://localhost:5241/');
+const URL = opt('url', 'http://localhost:5173/');
 const crews = [['monkey', 'gorilla'], ['trebuchet', 'knight'], ['steam', 'factory'], ['turret', 'jet'], ['drone', 'orbital'], ['moon', 'blackhole'], ['printer', 'paradox']];
 
 /** Runs in the page: average GPU ms, JS ms, calls and triangles over `frames`. */
