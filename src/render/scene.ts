@@ -314,6 +314,17 @@ export class GameScene {
     const power = Math.min(1, e.value / this.recentMax);
 
     this.star.hit(dir, (e.crit ? 1.5 : 0.7) * (auto ? 0.5 : 1), { crit: e.crit, flinch: e.weak || (!auto && Math.random() < 0.08) });
+    if (game.state.boss) {
+      // Hits chip the composure shell.
+      this.shell.pulse(e.crit ? 0.3 : 0.12);
+      if (!auto || Math.random() < 0.3) {
+        const chip = this.shell.color;
+        this.particles.matter.spawn({
+          x: hitWorld.x, y: hitWorld.y, z: hitWorld.z + 0.4, vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 2, vz: 2,
+          life: 0.8, size: 0.07 + Math.random() * 0.06, r: chip.r, g: chip.g, b: chip.b, gravity: 10, shape: Shape.Chunk,
+        });
+      }
+    }
     if (e.crit && !auto) this.hitStop = Math.max(this.hitStop, 0.07);
 
     if (!auto || Math.random() < 0.35) {
@@ -582,8 +593,6 @@ export class GameScene {
       this.screen.saturation = 1;
     }
 
-    // Boss shell reacts to damage.
-    if (boss && Math.random() < 0.3) this.shell.pulse();
 
     // Update everything.
     this.star.update(dt);

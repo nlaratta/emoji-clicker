@@ -136,6 +136,7 @@ const hud = new Hud({
       hardReset: () => {
         resetting = true;
         wipeSave(store);
+        store.removeItem('freakmoji.hints');
         location.reload();
       },
       sound: (k) => audio.ui(k),
@@ -234,6 +235,21 @@ document.addEventListener('keyup', (e) => {
   if (ability) abilityUp(ability.id);
 });
 
+// ── First-time hints: explain each mechanic the first time it shows up ──
+const HINTS_KEY = 'freakmoji.hints';
+let seenHints: Record<string, true> = {};
+try {
+  seenHints = JSON.parse(store.getItem(HINTS_KEY) ?? '{}') ?? {};
+} catch {
+  seenHints = {};
+}
+function hint(id: string, title: string, body: string): void {
+  if (seenHints[id]) return;
+  seenHints[id] = true;
+  store.setItem(HINTS_KEY, JSON.stringify(seenHints));
+  toasts.push(title, body, '', 7000);
+}
+
 // ── Events → presentation ──
 function react(events: GameEvent[]): void {
   if (!events.length) return;
@@ -241,6 +257,17 @@ function react(events: GameEvent[]): void {
   audio.handle(events, game);
   for (const e of events) {
     switch (e.type) {
+      case 'weakSpot':
+        hint('weak', '🎯 Weak spot!', 'Poke the glowing target on its face for a guaranteed critical hit.');
+        break;
+      case 'freakOutStart':
+        hint('freakout', '😱 Freak Out!', 'Your pokes are tripled and production doubled for a few seconds. Keep poking to fill the meter again.');
+        break;
+      case 'buyProducer':
+        if (game.state.producers[e.id] === e.amount) {
+          hint('minion', '🐒 Your first minion', 'Minions poke the Freakmoji for you, even while you are away. Upgrades double their output.');
+        }
+        break;
       case 'achievement': {
         const a = ACHIEVEMENT_BY_ID[e.id];
         toasts.push(`${a.icon} Feat unlocked: ${a.name}`, `${a.desc} (+1% gasps)`, 'gold');
@@ -250,6 +277,11 @@ function react(events: GameEvent[]): void {
       case 'eraChange':
         // Let the shatter land before the title card slams in.
         setTimeout(() => showEraCard(stageEl, e.to, settings.reducedMotion), 900);
+        for (const a of ABILITIES) {
+          if (a.unlockEra === e.to) {
+            setTimeout(() => hint(`ability-${a.id}`, `${a.icon} New ability: ${a.name} (key ${a.key})`, a.describe(1)), 4200);
+          }
+        }
         announcer.say(`Era ${ERAS[e.to].numeral}: ${ERAS[e.to].name}`, true);
         persist();
         break;
@@ -272,6 +304,7 @@ function react(events: GameEvent[]): void {
         break;
       case 'goldenSpawn':
         announcer.say('A golden Freakmoji appeared! Click it or press G.', true);
+        hint('golden', '🌟 A golden Freakmoji!', 'Catch it before it escapes (click it or press G) for a random bonus.');
         break;
       case 'freakOutStart':
         announcer.say('Freak out! Pokes are tripled.');

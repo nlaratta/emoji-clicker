@@ -528,7 +528,7 @@ textarea {
 
 .bossbar .boss-taunt {
   font-size: 13px;
-  color: var(--muted);
+  color: #e4dcf5;
   margin-top: 2px;
 }
 
@@ -545,9 +545,17 @@ textarea {
 }
 
 .bossbar .boss-timer {
-  margin-top: 4px;
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(10, 6, 20, 0.75);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.bossbar .boss-taunt {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 /* Ticker */

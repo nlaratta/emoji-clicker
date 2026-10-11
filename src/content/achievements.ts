@@ -117,13 +117,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // Secrets: shown as ??? until earned
   {
     id: 'hands', name: 'Talk to the Hand', icon: '✋', secret: true,
-    desc: 'Poke the Freakmoji’s gloves 50 times. They are VERY clean gloves.',
-    check: (s) => s.stats.handPokes >= 50,
+    desc: 'Poke the Freakmoji’s gloves 150 times. They are VERY clean gloves.',
+    check: (s) => s.stats.handPokes >= 150,
   },
   {
     id: 'eyes', name: 'Eye Contact', icon: '👀', secret: true,
-    desc: 'Poke the Freakmoji right in the eye 25 times. Rude.',
-    check: (s) => s.stats.eyePokes >= 25,
+    desc: 'Poke the Freakmoji right in the eye 150 times. Rude.',
+    check: (s) => s.stats.eyePokes >= 150,
   },
   {
     id: 'patience', name: 'Thousand-Yard Stare', icon: '🧘', secret: true,

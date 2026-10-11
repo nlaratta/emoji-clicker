@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import type { BossDef } from '../content/eras';
 
 const SHELLS: Record<BossDef['shell'], { a: number; b: number; pattern: number; crack: number; alpha: number }> = {
-  stone: { a: 0x8a8278, b: 0x5a544c, pattern: 0, crack: 0xff8a3a, alpha: 1 },
-  iron: { a: 0x9aa0a8, b: 0x4a5058, pattern: 1, crack: 0xffd060, alpha: 1 },
-  brass: { a: 0xd8a85a, b: 0x7a5a2a, pattern: 2, crack: 0xfff0a0, alpha: 1 },
-  kevlar: { a: 0x3a4030, b: 0x1a1e18, pattern: 3, crack: 0x4ab0ff, alpha: 1 },
-  energy: { a: 0x40e0ff, b: 0x0a3a6a, pattern: 4, crack: 0xffffff, alpha: 0.55 },
-  void: { a: 0x2a1a4a, b: 0x05020f, pattern: 5, crack: 0xb070ff, alpha: 0.95 },
-  zen: { a: 0xfff0b0, b: 0xffb040, pattern: 6, crack: 0xffffff, alpha: 0.7 },
+  stone: { a: 0x8a8278, b: 0x4a443c, pattern: 0, crack: 0xff7a2a, alpha: 0.82 },
+  iron: { a: 0x8a9098, b: 0x3a4048, pattern: 1, crack: 0xffb040, alpha: 0.8 },
+  brass: { a: 0xb8883a, b: 0x5a3a14, pattern: 2, crack: 0xffd070, alpha: 0.8 },
+  kevlar: { a: 0x3a4030, b: 0x1a1e18, pattern: 3, crack: 0x4ab0ff, alpha: 0.82 },
+  energy: { a: 0x30a0d0, b: 0x06284a, pattern: 4, crack: 0xbff4ff, alpha: 0.5 },
+  void: { a: 0x2a1a4a, b: 0x05020f, pattern: 5, crack: 0xb070ff, alpha: 0.8 },
+  zen: { a: 0xe0c070, b: 0xb07020, pattern: 6, crack: 0xfff4d0, alpha: 0.6 },
 };
 
 const FRAG = /* glsl */ `
@@ -51,12 +51,14 @@ void main() {
 
   // Composure cracks: glowing fissures, then whole plates fall away.
   vec3 v = vor(n * 3.2);
-  float crackW = uCrack * 0.16;
-  float fissure = smoothstep(crackW, crackW * 0.3, v.x) * step(0.02, uCrack);
+  float crackW = 0.015 + uCrack * 0.08;
+  float fissure = smoothstep(crackW, crackW * 0.3, v.x) * step(0.03, uCrack);
   if (v.y < uCrack * 0.75 - 0.25) discard;
-  col = mix(col, uCrackColor * 4.0, fissure);
-  col += vec3(uFlash) * 1.5;
-  gl_FragColor = vec4(col, uAlpha);
+  col = mix(col, uCrackColor * 2.2, fissure);
+  col += vec3(uFlash) * 0.6;
+  // Thinner in the middle, solid at the rim: the calm face shows through.
+  float edge = pow(1.0 - max(dot(normalize(vNormalV), normalize(vViewDir)), 0.0), 1.5);
+  gl_FragColor = vec4(col, clamp(mix(uAlpha * 0.55, 1.0, edge) + fissure, 0.0, 1.0));
 }
 `;
 
@@ -84,7 +86,8 @@ export class BossShell {
           void main(){ vObj = position; vNormalV = normalMatrix * normal; vec4 mv = modelViewMatrix * vec4(position,1.0); vViewDir = -mv.xyz; gl_Position = projectionMatrix * mv; }`,
         fragmentShader: FRAG,
         transparent: true,
-        side: THREE.DoubleSide,
+        depthWrite: false,
+        side: THREE.FrontSide,
       }),
     );
     this.mesh.visible = false;
@@ -110,8 +113,8 @@ export class BossShell {
     this.targetCrack = Math.min(1, Math.max(0, fraction));
   }
 
-  pulse(): void {
-    this.u.uFlash.value = 0.45;
+  pulse(amount = 0.25): void {
+    this.u.uFlash.value = Math.min(0.35, (this.u.uFlash.value as number) + amount);
   }
 
   end(): void {
@@ -127,7 +130,7 @@ export class BossShell {
     this.crack += (this.targetCrack - this.crack) * (1 - Math.exp(-10 * dt));
     this.u.uCrack.value = this.crack;
     this.u.uTime.value = t;
-    this.u.uFlash.value = Math.max(0, (this.u.uFlash.value as number) - dt * 4);
+    this.u.uFlash.value = Math.max(0, (this.u.uFlash.value as number) - dt * 6);
     this.mesh.rotation.y = t * 0.15;
   }
 }
