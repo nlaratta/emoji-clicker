@@ -115,7 +115,7 @@ export const THEMES: Theme[] = [
   {
     skyTop: 0x04121c, skyHorizon: 0x5a1aa8, skyBottom: 0x1a0030,
     sunDir: [0, 0.5, -0.85], sunColor: 0xffffff, sunSize: 0.05, sunStripes: 0,
-    stars: 0.6, nebula: 0.8, nebA: 0x00ffaa, nebB: 0xff00aa,
+    stars: 0.8, nebula: 0.4, nebA: 0x00c890, nebB: 0xc8008a,
     clouds: 0, cloudColor: 0x000000, ridge: 0, ridgeColor: 0x000000, skyline: 0, warp: 1,
     groundA4: [0, 0, 0, 0], groundB4: [0, 0.35, 1, 0], groundA: 0x0a0a14, groundB: 0x14142a, gridColor: 0x6affd8,
     fog: 0x1a1a3a,

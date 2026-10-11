@@ -3,7 +3,7 @@ import type { Game } from '../sim/game';
 import { WEAPONS } from '../content/weapons';
 import { PRODUCERS } from '../content/producers';
 import { UPGRADES, type UpgradeDef, type UpgradeKind } from '../content/upgrades';
-import { NODES, NODE_BY_ID, UNSPENT_BONUS, type NodeDef } from '../content/paranoia';
+import { NODES, NODE_BY_ID, UNSPENT_BONUS, UNSPENT_SOFTCAP, unspentBonus, type NodeDef } from '../content/paranoia';
 import { ACHIEVEMENTS, ACHIEVEMENT_BONUS } from '../content/achievements';
 import { ERAS } from '../content/eras';
 import { fmt, fmtRate, fmtTime, fmtPct } from '../core/format';
@@ -395,7 +395,7 @@ export class Shop {
     this.body.append(card);
     this.refreshers.push(() => {
       setText(unspent, `${fmt(s.paranoia)} 🫣`);
-      setText(bonus, `Each unspent point adds +${UNSPENT_BONUS * 100}% to all gasps (now +${fmt(s.paranoia * UNSPENT_BONUS * 100)}%). Spending points buys permanent fears below; you can only get them back when you collapse.`);
+      setText(bonus, `Each unspent point adds +${UNSPENT_BONUS * 100}% to all gasps, tapering after ${UNSPENT_SOFTCAP} (now +${fmt(unspentBonus(s.paranoia) * 100)}%). Spending points buys permanent fears below; you can only get them back when you collapse.`);
     });
 
     const actions = h('div', { class: 'collapse-actions' });

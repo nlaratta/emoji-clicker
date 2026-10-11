@@ -3,7 +3,8 @@ import type { Modifiers } from '../sim/modifiers';
 /**
  * Collapsing a timeline wipes the run, but the Freakmoji keeps its fear.
  * Paranoia is the prestige currency. Every UNSPENT point gives +3% to all
- * gasps; spending points buys permanent nodes that change how you play.
+ * gasps (softcapped past 250); spending points buys permanent nodes that
+ * change how you play.
  * Nodes can only be refunded at the moment of collapse, so each timeline
  * commits to a build: Twitchy (active), Brooding (idle) or Unhinged (chaos).
  */
@@ -22,6 +23,14 @@ export interface NodeDef {
 }
 
 export const UNSPENT_BONUS = 0.03;
+/** Beyond this many unspent points the bonus grows with the square root. */
+export const UNSPENT_SOFTCAP = 250;
+
+/** Total multiplier bonus from unspent Paranoia (e.g. 0.6 = +60%). */
+export function unspentBonus(points: number): number {
+  if (points <= UNSPENT_SOFTCAP) return UNSPENT_BONUS * points;
+  return UNSPENT_BONUS * UNSPENT_SOFTCAP * Math.sqrt(points / UNSPENT_SOFTCAP);
+}
 /** Lifetime gasps at which the first Paranoia point is earned. */
 export const PARANOIA_BASE = 1e8;
 

@@ -1,7 +1,7 @@
 import { safe } from '../core/math';
 import { PRODUCERS, COST_GROWTH, type ProducerDef } from '../content/producers';
 import { UPGRADES } from '../content/upgrades';
-import { NODES, NODE_BY_ID, UNSPENT_BONUS, PARANOIA_BASE } from '../content/paranoia';
+import { NODES, NODE_BY_ID, PARANOIA_BASE, unspentBonus } from '../content/paranoia';
 import { ACHIEVEMENT_BONUS } from '../content/achievements';
 import { WEAPONS, weaponDamage } from '../content/weapons';
 import { baseModifiers, type Modifiers } from './modifiers';
@@ -17,7 +17,7 @@ export function computeModifiers(s: GameState): Modifiers {
   for (const n of NODES) if (s.nodes[n.id]) n.apply(m);
   for (const u of UPGRADES) if (s.upgrades[u.id]) u.apply(m, s);
   m.globalMult *= 1 + ACHIEVEMENT_BONUS * Object.keys(s.achievements).length;
-  m.globalMult *= 1 + UNSPENT_BONUS * s.paranoia;
+  m.globalMult *= 1 + unspentBonus(s.paranoia);
   return m;
 }
 

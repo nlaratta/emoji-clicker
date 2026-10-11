@@ -35,6 +35,10 @@ export class Floaters {
   private w = 1;
   private h = 1;
   enabled = true;
+  /** Rotating lanes so rapid numbers fan out instead of stacking. */
+  private lane = 0;
+  private lastSpawn = 0;
+  private clock = 0;
   font = '"Bungee", "Arial Black", system-ui, sans-serif';
 
   constructor(canvas: HTMLCanvasElement, capacity = 70) {
@@ -59,10 +63,19 @@ export class Floaters {
     let f = this.pool.find((p) => !p.active);
     if (!f) f = this.pool.reduce((a, b) => (a.age / a.life > b.age / b.life ? a : b));
     const spread = o.spread ?? 90;
+    let lx = 0;
+    let ly = 0;
+    if (spread > 0) {
+      this.lane = this.clock - this.lastSpawn < 0.25 ? (this.lane + 1) % 6 : 0;
+      this.lastSpawn = this.clock;
+      const LANES = [0, -1, 1, -2, 2, 0];
+      lx = LANES[this.lane] * spread * 0.45;
+      ly = -Math.floor(this.lane / 2) * 18;
+    }
     Object.assign(f, {
       active: true,
-      x: x + (Math.random() - 0.5) * spread,
-      y: y + (Math.random() - 0.5) * spread * 0.4,
+      x: x + lx + (Math.random() - 0.5) * spread * 0.3,
+      y: y + ly + (Math.random() - 0.5) * spread * 0.2,
       vx: (Math.random() - 0.5) * 70,
       vy: o.vy ?? -140,
       age: 0,
@@ -77,6 +90,7 @@ export class Floaters {
   }
 
   update(dt: number): void {
+    this.clock += dt;
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.clearRect(0, 0, this.w, this.h);

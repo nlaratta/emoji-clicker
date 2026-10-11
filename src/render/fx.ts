@@ -139,7 +139,7 @@ export class ScreenFX {
 
   aberration(x: number): void {
     if (this.prefs.reducedMotion) return;
-    this.ab = Math.min(0.03, this.ab + x * 2.5);
+    this.ab = Math.min(0.012, this.ab + x * 1.2);
   }
 
   glitchBurst(amount: number, hold = 0.3): void {
@@ -157,7 +157,7 @@ export class ScreenFX {
   update(dt: number, time: number): void {
     for (const w of this.waves) if (w.z >= 0) w.z = w.z > 1.2 ? -1 : w.z + dt;
     this.flashAmt = Math.max(0, this.flashAmt - dt * 3.2);
-    this.ab = Math.max(0, this.ab - dt * 0.06);
+    this.ab = Math.max(0, this.ab - dt * 0.04);
     this.glitchHold = Math.max(0, this.glitchHold - dt);
     if (this.glitchHold <= 0) this.glitch = Math.max(0, this.glitch - dt * 3);
     const u = this.u;

@@ -95,8 +95,11 @@ export class Stage {
     const bloomScale = this.tier === 'high' ? 0.5 : 0.35;
     this.bloom.resolution.set(this.width * pr * bloomScale, this.height * pr * bloomScale);
     this.camera.aspect = this.width / this.height;
-    // Pull back on tall (portrait) screens so the star still fits.
-    this.camera.fov = this.camera.aspect < 0.8 ? 50 : this.camera.aspect < 1.2 ? 42 : 36;
+    // Keep the horizontal framing constant on narrow screens (continuous, so
+    // resizing never jumps): 36° vertical at 1.5:1 and wider, more as it narrows.
+    const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(18)) * 1.5);
+    const vHalf = Math.atan(Math.tan(hHalf) / Math.min(1.5, this.camera.aspect));
+    this.camera.fov = Math.min(64, THREE.MathUtils.radToDeg(vHalf * 2));
     if (this.viewShift !== 0) {
       this.camera.setViewOffset(this.width, this.height, -this.viewShift, 0, this.width, this.height);
     } else {

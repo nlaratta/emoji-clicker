@@ -96,7 +96,7 @@ export class Strikes {
           // Ejected casing.
           p.matter.spawn({ x: from.x * 0.7, y: from.y, z: from.z * 0.7, vx: -side * 1.5, vy: 3, vz: 0.5, life: 0.8, size: 0.05, r: 0.95, g: 0.75, b: 0.3, gravity: 14, shape: Shape.Chunk });
         }
-        this.fly.toss(emoji, hit.x + side * 1.4, hit.y + 0.2, hit.z + 1.6, -side * 0.5, 0.6, 0, { life: 0.35, scale0: 0.5, scale1: 0.55, gravity: 0, spin: 0 });
+        this.fly.toss(emoji, hit.x + side * 1.3, hit.y + 0.3, hit.z + 0.9, -side * 0.5, 0.6, 0, { life: 0.35, scale0: 0.4, scale1: 0.45, gravity: 0, spin: 0 });
         p.flash(out, new THREE.Color(1, 0.9, 0.5), 0.5, 0.08, 5);
         break;
       }
@@ -108,7 +108,7 @@ export class Strikes {
           p.glow.spawn({
             x: out.x, y: out.y, z: out.z,
             vx: Math.cos(th) * Math.sin(ph) * v, vy: Math.cos(ph) * v + 0.5, vz: Math.sin(th) * Math.sin(ph) * v + 1,
-            life: 0.45 + Math.random() * 0.3, size: 0.45 * scale, sizeEnd: 0.1, r: 3.6, g: 1.4 + Math.random(), b: 0.3, drag: 3.5, shape: Shape.Glow,
+            life: 0.4 + Math.random() * 0.3, size: 0.28 * Math.min(scale, 1.6), sizeEnd: 0.06, r: 2.4, g: 0.9 + Math.random() * 0.7, b: 0.2, drag: 3.5, shape: Shape.Glow,
           });
         }
         p.smoke(out, Math.round(5 * scale), new THREE.Color(0x3a3230), { size: 0.4, sizeEnd: 1.6, life: 1.2 });

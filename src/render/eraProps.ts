@@ -503,17 +503,6 @@ function modern(ctx: PropContext): PropSet {
   pad.position.y = 0.207;
   set.add(pad, 0.3, 0);
 
-  // Barriers
-  const sandbag = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 1 });
-  const bags: THREE.Matrix4[] = [];
-  for (let side = -1; side <= 1; side += 2) {
-    for (let i = 0; i < 7; i++) {
-      const a = side * (0.95 + i * 0.13) + Math.PI;
-      bags.push(mtx(Math.sin(a) * 3.6, 0.22, Math.cos(a) * -3.6 * -1, 0.35, 0.22, 0.25, 0, a, 0));
-    }
-  }
-  set.add(instanced(new THREE.CapsuleGeometry(1, 1.2, 3, 8).rotateZ(Math.PI / 2), sandbag, bags), 2);
-
   const heli = addSprite(set, ctx, '🚁', 0, 12, -20, 3);
   set.onUpdate((_dt, t) => {
     heli.x = Math.sin(t * 0.25) * 16;
@@ -531,7 +520,8 @@ function future(ctx: PropContext): PropSet {
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + 0.26;
     const d = 10;
-    if (Math.cos(a) > 0.8) continue;
+    // Keep the line of sight clear: nothing directly in front of or behind the star.
+    if (Math.abs(Math.sin(a)) < 0.35) continue;
     const col = i % 2 === 0 ? new THREE.Color(0.2, 2.6, 3.0) : new THREE.Color(3.0, 0.4, 2.4);
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 7, 0.22), new THREE.MeshBasicMaterial({ color: col }));
     m.position.set(Math.sin(a) * d, 3.5, Math.cos(a) * d);

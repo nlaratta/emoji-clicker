@@ -116,7 +116,7 @@ export class GameScene {
     // Golden Freakmoji: a tiny gilded twin that zips around.
     this.golden = new Freakmoji();
     this.golden.setSkinTint(new THREE.Color(1, 0.78, 0.15), 0.85);
-    this.golden.root.scale.setScalar(0.32);
+    this.golden.root.scale.setScalar(0.36);
     this.golden.root.visible = false;
     this.golden.mood = 'freakout';
     scene.add(this.golden.root);
@@ -353,9 +353,9 @@ export class GameScene {
     const emoji = game.state.weapon >= 0 ? WEAPONS[game.state.weapon].emoji : '👊';
     this.strikes.strike(family, emoji, hitWorld, dir, { crit: true, weak: false, power: 1, screen: this.screenUv(hitWorld) });
     this.strikes.strike('explosive', '🥊', hitWorld, dir, { crit: true, weak: false, power: charge, screen: this.screenUv(hitWorld) });
-    this.particles.ring(hitWorld, perfect ? GOLD : new THREE.Color(1, 0.6, 0.3), 7 * Math.max(0.4, charge), 0.6, 4);
+    this.particles.ring(hitWorld, perfect ? GOLD : new THREE.Color(1, 0.6, 0.3), 7 * Math.max(0.4, charge), 0.6, 2.4);
     this.screen.shockwave(this.screenUv(hitWorld), 1.6 * Math.max(0.5, charge));
-    this.screen.flash(perfect ? '#fff2b0' : '#ffffff', perfect ? 0.6 : 0.3);
+    this.screen.flash(perfect ? '#fff2b0' : '#ffffff', perfect ? 0.35 : 0.18);
     this.rig.addTrauma(0.5 + charge * 0.4);
     this.rig.punch(1.6);
     if (perfect) this.floatAt(hitWorld.clone().setY(2.7), 'PERFECT!', { size: 58, color: '#ffd23f', life: 1.6, vy: -50, spread: 0 });
@@ -434,7 +434,7 @@ export class GameScene {
     this.era = era;
     this.world.setEra(era, instant);
     this.rig.drift = era >= 6 ? 1 : 0;
-    this.screen.baseAberration = era >= 6 ? 0.009 : era >= 4 ? 0.006 : 0.004;
+    this.screen.baseAberration = era >= 6 ? 0.007 : era >= 4 ? 0.004 : 0.0025;
     this.screen.baseGlitch = 0;
     if (!instant) {
       this.rig.eraTransition(3.4);
@@ -534,7 +534,13 @@ export class GameScene {
       const fy = 0.7 + ((sd >>> 9) % 100) / 180;
       const ph = (sd % 628) / 100;
       const k = this.goldenAge;
-      this.golden.root.position.set(Math.sin(k * fx + ph) * 3.2, 1.6 + Math.sin(k * fy + ph * 2) * 1.2, 1.2 + Math.cos(k * fx * 0.7 + ph) * 0.8);
+      // Keep the flight path inside the visible frustum (the shop panel narrows it).
+      const cam = this.stage.camera;
+      const depth = Math.max(3, cam.position.z - 1.6);
+      const halfH = depth * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+      const ax = Math.min(3, halfH * cam.aspect * 0.72);
+      const ay = Math.min(0.85, halfH * 0.45);
+      this.golden.root.position.set(Math.sin(k * fx + ph) * ax, 1.3 + Math.sin(k * fy + ph * 2) * ay, 1.4 + Math.cos(k * fx * 0.7 + ph) * 0.5);
       this.golden.root.rotation.y = Math.sin(k * 2) * 0.4;
       this.golden.update(dt);
       if (Math.random() < 0.6) {
@@ -542,16 +548,16 @@ export class GameScene {
         this.particles.glow.spawn({ x: p.x, y: p.y, z: p.z, vx: (Math.random() - 0.5) * 0.4, vy: -0.4, vz: 0, life: 0.6, size: 0.08, sizeEnd: 0.01, r: 4, g: 3, b: 0.8, shape: Shape.Star });
       }
       const left = this.goldenLife - this.goldenAge;
-      this.golden.root.scale.setScalar(0.32 * (left < 1 ? Math.max(0.05, left) : Math.min(1, this.goldenAge * 3)));
+      this.golden.root.scale.setScalar(0.36 * (left < 1 ? Math.max(0.05, left) : Math.min(1, this.goldenAge * 3)));
     }
 
     // Freak Out: confetti of panic.
     if (freaking) {
-      this.freakoutConfetti += dtReal * 6;
+      this.freakoutConfetti += dtReal * 8;
       while (this.freakoutConfetti > 1) {
         this.freakoutConfetti -= 1;
         const e = ['😱', '😳', '💥', '❗', '🫨'][Math.floor(Math.random() * 5)];
-        this.fly.toss(e, (Math.random() - 0.5) * 6, 4.5, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 0, 0, { life: 1.6, scale0: 0.4, scale1: 0.3, gravity: 3 });
+        this.fly.toss(e, (Math.random() - 0.5) * 4.5, 3.6, 0.5 + Math.random() * 1.5, (Math.random() - 0.5) * 2, 0.5, 0, { life: 1.8, scale0: 0.7, scale1: 0.45, gravity: 2.5 });
       }
       this.screen.tint.set(1.15, 0.85, 1.05, 0.35 + Math.sin(t * 8) * 0.1);
     } else this.screen.tint.w = Math.max(0, this.screen.tint.w - dtReal * 2);
