@@ -8,7 +8,9 @@ const swiftshader = process.env.CI ? ['--use-angle=swiftshader', '--enable-unsaf
 
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 90_000,
+  // Generous: CI renders the 3D scenes in software (SwiftShader), and a test
+  // that reloads the page boots the game twice.
+  timeout: 180_000,
   expect: { timeout: 20_000 },
   fullyParallel: false,
   workers: 1,
