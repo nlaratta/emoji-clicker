@@ -27,7 +27,10 @@ export class CameraRig {
   private cinematicDur = 1;
   baseFov = 36;
   prefs: MotionPrefs = { shake: 1, reducedMotion: false, flashes: true };
-  readonly target = new THREE.Vector3(0, 1.2, 0);
+  readonly target = new THREE.Vector3(0, 1.15, 0);
+  /** Resting framing: a raised three-quarter view so the ground plane reads. */
+  baseDist = 9.3;
+  baseHeight = 2.95;
   /** 0–1: boss close-up framing. */
   bossFocus = 0;
   /** Continuous slow roll (reality era). */
@@ -74,10 +77,10 @@ export class CameraRig {
     const px = reduced ? 0 : this.parallaxCur.x * 0.35;
     const py = reduced ? 0 : this.parallaxCur.y * 0.18;
     const orbit = pull * 0.35 * Math.sin(t * 0.5);
-    const dist = 7.4 + z;
+    const dist = this.baseDist + z;
     this.camera.position.set(
       Math.sin(orbit + px * 0.12) * dist + px,
-      1.75 + py + pull * 2.4 + this.bossFocus * -0.2,
+      this.baseHeight + py + pull * 2.4 + this.bossFocus * -0.5,
       Math.cos(orbit + px * 0.12) * dist,
     );
     this.camera.up.set(0, 1, 0);

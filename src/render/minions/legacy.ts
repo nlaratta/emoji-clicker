@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { PRODUCERS } from '../content/producers';
-import { SpriteBatch, type EmojiAtlas, type FlyingEmoji, type SpriteSlot } from './sprites';
-import { Shape, type Particles } from './particles';
+import { PRODUCERS } from '../../content/producers';
+import { SpriteBatch, type EmojiAtlas, type FlyingEmoji, type SpriteSlot } from '../sprites';
+import { Shape, type Particles } from '../particles';
 
 /**
  * Idle production made visible: every minion type you own shows up around
@@ -63,7 +63,8 @@ export interface ImpactFn {
 
 const TARGET = new THREE.Vector3(0, 1.25, 0);
 
-export class Minions {
+/** Emoji-billboard minions: the fallback for types without a 3D model yet. */
+export class SpriteMinions {
   readonly batch: SpriteBatch;
   private groups: Group[] = [];
   private free: SpriteSlot[];
@@ -78,6 +79,8 @@ export class Minions {
   /** Global visual activity scale (quality). */
   activity = 1;
   private pending: { at: number; fn: () => void }[] = [];
+  /** Producer ids drawn elsewhere (as 3D creatures/machines). */
+  readonly skip = new Set<string>();
 
   private later(sec: number, fn: () => void): void {
     if (this.pending.length < 200) this.pending.push({ at: this.time + sec, fn });
@@ -99,7 +102,7 @@ export class Minions {
   /** Sync unit counts with the simulation. */
   sync(producers: Record<string, number>): void {
     for (const g of this.groups) {
-      const owned = producers[g.id] ?? 0;
+      const owned = this.skip.has(g.id) ? 0 : producers[g.id] ?? 0;
       g.owned = owned;
       const want = Math.min(g.vis.max, owned);
       while (g.units.length < want) this.spawnUnit(g, g.units.length);

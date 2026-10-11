@@ -127,8 +127,11 @@ export class GameScene {
     scene.add(this.chargeFist);
 
     scene.add(this.particles.group, this.fly.batch.mesh);
-    this.minions = new Minions(this.atlas, this.fly, this.particles, (p, s, c) => this.minionImpact(p, s, c));
-    scene.add(this.minions.batch.mesh);
+    this.minions = new Minions(this.atlas, this.fly, this.particles, (p, s, c) => this.minionImpact(p, s, c), {
+      heightAt: (x, z) => this.world.heightAt(x, z),
+      kit: () => this.world.kit,
+    });
+    scene.add(this.minions.group);
 
     this.rig = new CameraRig(this.stage.camera);
     this.screen = new ScreenFX(this.stage.final.uniforms as unknown as Record<string, THREE.IUniform>);
@@ -152,7 +155,8 @@ export class GameScene {
     this.stage.setTier(tier);
     this.particles.setDensity(tier === 'low' ? 0.4 : tier === 'medium' ? 0.75 : 1);
     this.minions.activity = tier === 'low' ? 0.5 : 1;
-    this.stage.renderer.shadowMap.enabled = false;
+    this.world.setQuality({ grass: tier === 'high' ? 1 : tier === 'medium' ? 0.55 : 0.2, shadows: tier !== 'low' });
+    this.minions.setShadows(tier !== 'low');
   }
 
   setPrefs(p: MotionPrefs): void {
@@ -226,6 +230,7 @@ export class GameScene {
           this.onHaymaker(e.value, e.perfect, e.charge, game);
           break;
         case 'freakOutStart':
+          this.minions.cheer(1.6);
           this.screen.flash('#ff3a8a', 0.35);
           this.rig.addTrauma(0.4);
           this.particles.ring(CENTER, new THREE.Color(1, 0.3, 0.6), 6, 0.6, 3);
@@ -240,8 +245,10 @@ export class GameScene {
           this.goldenAge = 0;
           this.goldenLife = e.duration;
           this.golden.root.visible = true;
+          this.minions.pointAt(this.golden.root.position);
           break;
         case 'goldenCaught': {
+          this.minions.pointAt(null);
           const at = this.golden.root.position.clone();
           this.golden.root.visible = false;
           this.particles.sparks(at, 40, GOLD, 6);
@@ -255,6 +262,7 @@ export class GameScene {
           break;
         }
         case 'goldenMissed':
+          this.minions.pointAt(null);
           this.particles.smoke(this.golden.root.position, 6, new THREE.Color(0xffe08a));
           this.golden.root.visible = false;
           break;
@@ -271,6 +279,7 @@ export class GameScene {
         }
         case 'bossWin':
           this.shatterShell();
+          this.minions.cheer(2.2);
           break;
         case 'bossFail':
           this.shell.end();
@@ -637,10 +646,15 @@ export class GameScene {
     st.hemi.groundColor.copy(T.c.hemiGround);
     st.hemi.intensity = T.n.hemiInt;
     st.key.color.copy(T.c.keyColor);
+    st.setKeyDirection(T.v.keyDir);
     st.key.intensity = T.n.keyInt;
     st.rim.color.copy(T.c.rimColor);
     st.rim.intensity = T.n.rimInt;
     st.bloom.strength = T.n.bloom;
+    const fog = st.scene.fog as THREE.Fog;
+    fog.color.copy(T.c.fog);
+    fog.near = T.n.fogNear;
+    fog.far = T.n.fogFar;
     if (typeof document !== 'undefined') document.documentElement.style.setProperty('--era-accent', T.accent);
   }
 

@@ -4,14 +4,41 @@
     {
       "name": "freakmoji-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["exec", "vite", "--port", "5199", "--strictPort"],
+      "runtimeArgs": [
+        "exec",
+        "vite",
+        "--port",
+        "5199",
+        "--strictPort"
+      ],
       "port": 5199
     },
     {
       "name": "freakmoji-preview",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["exec", "vite", "preview", "--port", "5299", "--strictPort", "--base", "/emoji-clicker/"],
+      "runtimeArgs": [
+        "exec",
+        "vite",
+        "preview",
+        "--port",
+        "5299",
+        "--strictPort",
+        "--base",
+        "/emoji-clicker/"
+      ],
       "port": 5299
+    },
+    {
+      "name": "freakmoji-art",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "vite",
+        "--port",
+        "5241",
+        "--strictPort"
+      ],
+      "port": 5241
     }
   ]
 }

@@ -4,3 +4,7 @@ test-results/
 playwright-report/
 .DS_Store
 *.log
+art/icons/raw/
+art/previews/
+art/.raw/
+__pycache__/
