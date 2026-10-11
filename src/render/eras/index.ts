@@ -3,6 +3,9 @@ import type { PropContext } from '../eraProps';
 import { stoneAge } from './stone';
 import { middleAges } from './medieval';
 import { freakdustrial } from './industrial';
+import { shockAndAwe } from './modern';
+import { neonOverdrive } from './neon';
+import { spaceOutpost } from './space';
 
 /**
  * Era scripts bring a kit to life: practical lights, fire and smoke,
@@ -18,6 +21,9 @@ const SCRIPTS: Record<number, (kit: EraKit, ctx: PropContext) => EraScript> = {
   0: stoneAge,
   1: middleAges,
   2: freakdustrial,
+  3: shockAndAwe,
+  4: neonOverdrive,
+  5: spaceOutpost,
 };
 
 export function attachEraScript(era: number, kit: EraKit, ctx: PropContext): EraScript | null {

@@ -21,7 +21,7 @@ from mathutils import Matrix, Vector, noise  # noqa: E402
 
 from kit import (  # noqa: E402
     C, apply_mods, argv, bake_ao, bm_cyl, bm_ico, collection, displace, export_glb, join, mesh_obj, mix, move_to, mul,
-    paint, paint_solid, preview, reset, sweep, vtx_material,
+    paint, paint_faces, paint_solid, preview, reset, sweep, vtx_material,
 )
 from rocks import boulder  # noqa: E402
 
@@ -522,6 +522,327 @@ def factory():
     return root
 
 
+# ───────────────────────────────────────────── Auto-Turret
+def turret():
+    """A sentry gun: tripod and ammo box (base), a yawing armoured head with a
+    red sensor eye (head), and pitching twin barrels (guns)."""
+    from hard import beam, block, cylinder
+    OLIVE, OLIVE_D, GUNMETAL = C("#6f7a3e"), C("#454c26"), C("#3a3c44")
+    root = character("turret")
+    parts = []
+    for k in range(3):
+        a = k / 3 * math.tau + math.pi / 2
+        parts.append(beam(f"tu_leg{k}", (math.cos(a) * 0.55, math.sin(a) * 0.55, 0.0), (0, 0, 0.55), 0.07, GUNMETAL))
+        parts.append(cylinder(f"tu_foot{k}", 0.09, 0.1, 0.05, GUNMETAL, segs=8, bevel=0, at=(math.cos(a) * 0.55, math.sin(a) * 0.55, 0)))
+    parts.append(cylinder("tu_col", 0.12, 0.14, 0.75, GUNMETAL, segs=10, bevel=0.02, at=(0, 0, 0.1)))
+    parts.append(block("tu_ammo", 0.35, 0.25, 0.28, OLIVE_D, bevel=0.03, at=(0.25, 0.25, 0.2)))
+    base = part(join(parts, "tu_basej"), "turret_base", Vector((0, 0, 0)), root)
+    for o in [base]:
+        o.data.materials.clear()
+        o.data.materials.append(METAL)
+    head = block("tu_head", 0.55, 0.62, 0.38, OLIVE, bevel=0.1, seg=2, at=(0, 0.02, 0.8))
+    paint(head, lambda co, n, *_: mix(OLIVE_D, OLIVE, 0.5 + 0.5 * n.z))
+    shield = block("tu_shield", 0.75, 0.08, 0.42, OLIVE_D, bevel=0.04, at=(0, -0.33, 0.8))
+    lens_ring = cylinder("tu_ring", 0.09, 0.09, 0.06, GUNMETAL, segs=12, bevel=0.01, axis="Y", at=(0.18, -0.39, 1.07))
+    lens = blob("tu_lens", (0.065, 0.03, 0.065), (0.18, -0.42, 1.07), 2)
+    lens.data.materials.clear()
+    lens.data.materials.append(vtx_material("Glow", rough=1.0, emissive=True))
+    paint_solid(lens, C("#ff2a2a"))
+    stripe = block("tu_stripe", 0.56, 0.63, 0.05, C("#f2c230"), bevel=0, at=(0, 0.02, 1.02))
+    head = part(join([head, shield, lens_ring, lens, stripe], "tu_headj"), "turret_head", Vector((0, 0, 0.85)), base)
+    guns = []
+    for sgn in (-1, 1):
+        barrel = cylinder(f"tu_barrel{sgn}", 0.055, 0.05, 0.85, GUNMETAL, segs=10, bevel=0.01, axis="Y", at=(sgn * 0.13, -0.75, 0.92))
+        brake = cylinder(f"tu_brake{sgn}", 0.08, 0.08, 0.12, GUNMETAL, segs=10, bevel=0.01, axis="Y", at=(sgn * 0.13, -1.16, 0.92))
+        guns += [barrel, brake]
+    breech = block("tu_breech", 0.42, 0.3, 0.22, GUNMETAL, bevel=0.04, at=(0, -0.32, 0.81))
+    g = join([breech, *guns], "tu_gunsj")
+    g.data.materials.clear()
+    g.data.materials.append(METAL)
+    part(g, "turret_guns", Vector((0, -0.25, 0.92)), head)
+    return root
+
+
+# ───────────────────────────────────────────── Strafing Jet
+def jet():
+    """A chunky toy fighter: rounded fuselage, swept wings, twin fins, a glossy
+    canopy, red stripes and an afterburner nozzle."""
+    from hard import block, cylinder
+    SILVER, SILVER_D, RED = C("#b8bcc6"), C("#7a7e8a"), C("#d23a3a")
+    root = character("jet")
+    fus = capsule("j_fus", (0, -1.2, 0.0), (0, 1.1, 0.05), 0.32, 0.26, around=14)
+    fus.data.materials.clear()
+    fus.data.materials.append(METAL)
+    paint(fus, lambda co, n, *_: RED if abs(co.y + 0.2) < 0.12 else mix(SILVER_D, SILVER, 0.5 + 0.5 * n.z))
+    nose = blob("j_nose", (0.2, 0.45, 0.2), (0, -1.55, -0.02), 2)
+    nose.data.materials.clear()
+    nose.data.materials.append(METAL)
+    paint_solid(nose, C("#3a3c44"))
+    canopy = blob("j_canopy", (0.2, 0.55, 0.2), (0, -0.55, 0.26), 2)
+    canopy.data.materials.clear()
+    canopy.data.materials.append(GLOSS)
+    paint(canopy, lambda co, n, *_: mix(C("#0e1a30"), C("#5a8ad0"), max(0, n.z) * 0.6))
+    import bmesh as _bm
+    def wing(nm, pts, thick=0.06):
+        bm = _bm.new()
+        vs = [bm.verts.new(p) for p in pts]
+        bm.faces.new(vs)
+        ob = mesh_obj(bm, nm, smooth=False)
+        sol = ob.modifiers.new("S", "SOLIDIFY")
+        sol.thickness = thick
+        from kit import apply_mods as _am
+        _am(ob)
+        ob.data.materials.clear()
+        ob.data.materials.append(METAL)
+        paint(ob, lambda co, n, *_: RED if abs(abs(co.x) - 1.1) < 0.12 else mix(SILVER_D, SILVER, 0.6 + 0.4 * n.z))
+        return ob
+    wings = [wing(f"j_wing{sgn}", [(sgn * 0.25, -0.35, -0.05), (sgn * 1.55, 0.55, -0.1), (sgn * 1.55, 0.85, -0.1), (sgn * 0.25, 0.75, -0.05)]) for sgn in (-1, 1)]
+    tails = [wing(f"j_tail{sgn}", [(sgn * 0.2, 0.8, 0.0), (sgn * 0.75, 1.25, -0.02), (sgn * 0.75, 1.42, -0.02), (sgn * 0.2, 1.35, 0.0)], 0.05) for sgn in (-1, 1)]
+    fins = [wing(f"j_fin{sgn}", [(sgn * 0.15, 0.75, 0.2), (sgn * 0.3, 1.25, 0.85), (sgn * 0.3, 1.45, 0.85), (sgn * 0.15, 1.4, 0.2)], 0.05) for sgn in (-1, 1)]
+    nozzle = cylinder("j_noz", 0.22, 0.25, 0.25, C("#2a2a30"), segs=12, bevel=0.01, axis="Y", at=(0, 1.32, 0.05))
+    flame = blob("j_flame", (0.17, 0.2, 0.17), (0, 1.5, 0.05), 2)
+    flame.data.materials.clear()
+    flame.data.materials.append(vtx_material("Glow", rough=1.0, emissive=True))
+    paint(flame, lambda co, n, *_: mix(C("#ff6a1a"), C("#ffe08a"), max(0, -n.y)))
+    body = join([fus, nose, canopy, *wings, *tails, *fins, nozzle, flame], "j_bodyj")
+    part(body, "jet_body", Vector((0, 0, 0)), root)
+    return root
+
+
+# ───────────────────────────────────────────── Drone Swarm
+def drone():
+    """A friendly quad drone: a rounded pod with a visor and one glowing eye,
+    four ducted rotors (spun by the runtime) and a twin-prong zapper."""
+    from hard import cylinder
+    from kit import sweep as _sweep
+    WHITE, TEAL, GREY = C("#eef0f4"), C("#2ab0b8"), C("#4a4e5a")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    root = character("drone")
+    shell = blob("d_shell", (0.27, 0.3, 0.17), (0, 0, 0), 3)
+    paint(shell, lambda co, n, *_: TEAL if abs(co.z) < 0.035 else (WHITE if co.z > 0 else mix(GREY, WHITE, 0.5)))
+    shell.data.materials.clear()
+    shell.data.materials.append(GLOSS)
+    visor = blob("d_visor", (0.17, 0.09, 0.09), (0, -0.24, 0.02), 2)
+    visor.data.materials.clear()
+    visor.data.materials.append(GLOSS)
+    paint_solid(visor, C("#10141e"))
+    eye_ = blob("d_eye", (0.06, 0.035, 0.06), (0, -0.315, 0.025), 2)
+    eye_.data.materials.clear()
+    eye_.data.materials.append(GLOW)
+    paint_solid(eye_, C("#3af0ff"))
+    bits = [shell, visor, eye_]
+    hubs = []
+    for k, (sx, sy) in enumerate(((-1, -1), (1, -1), (-1, 1), (1, 1))):
+        hub = Vector((sx * 0.4, sy * 0.38, 0.05))
+        hubs.append(hub)
+        arm = capsule(f"d_arm{k}", (sx * 0.14, sy * 0.14, 0.0), tuple(hub), 0.035, 0.03, around=8)
+        paint_solid(arm, GREY)
+        ring = [(hub.x + math.cos(a / 24 * math.tau) * 0.17, hub.y + math.sin(a / 24 * math.tau) * 0.17, hub.z) for a in range(25)]
+        duct = _sweep(f"d_duct{k}", ring, 0.03, around=6)
+        paint_solid(duct, WHITE)
+        glow_ring = _sweep(f"d_glow{k}", [(x, y, z - 0.03) for x, y, z in ring], 0.012, around=4)
+        glow_ring.data.materials.clear()
+        glow_ring.data.materials.append(GLOW)
+        paint_solid(glow_ring, C("#3af0ff") if sy < 0 else C("#ff3ad0"))
+        bits += [arm, duct, glow_ring]
+    for sx in (-1, 1):
+        skid = capsule(f"d_skid{sx}", (sx * 0.12, -0.15, -0.2), (sx * 0.12, 0.15, -0.2), 0.02, around=6)
+        strut = capsule(f"d_strut{sx}", (sx * 0.1, 0.0, -0.1), (sx * 0.12, 0.0, -0.2), 0.018, around=6)
+        paint_solid(skid, GREY)
+        paint_solid(strut, GREY)
+        bits += [skid, strut]
+    body = part(join(bits, "d_bodyj"), "drone_body", Vector((0, 0, 0)), root)
+    for k, hub in enumerate(hubs):
+        blades = [block_(f"d_blade{k}{j}", 0.3, 0.045, 0.012, C("#2a2e38"), (hub.x, hub.y, hub.z + 0.01), j * math.pi / 2) for j in range(2)]
+        cap = blob(f"d_cap{k}", (0.03, 0.03, 0.02), (hub.x, hub.y, hub.z + 0.025), 1)
+        paint_solid(cap, WHITE)
+        part(join(blades + [cap], f"d_rotorj{k}"), f"drone_rotor{k}", hub, body)
+    prongs = []
+    for sx in (-1, 1):
+        pr = capsule(f"d_prong{sx}", (sx * 0.05, -0.12, -0.1), (sx * 0.045, -0.3, -0.17), 0.016, 0.012, around=6)
+        paint_solid(pr, C("#c8ccd4"))
+        tip = blob(f"d_tip{sx}", (0.025, 0.025, 0.025), (sx * 0.045, -0.31, -0.175), 1)
+        tip.data.materials.clear()
+        tip.data.materials.append(GLOW)
+        paint_solid(tip, C("#a0f8ff"))
+        prongs += [pr, tip]
+    z = join(prongs, "d_zapj")
+    z.data.materials[0] = METAL if z.data.materials and z.data.materials[0].name == "Vtx" else z.data.materials[0]
+    part(z, "drone_zap", Vector((0, -0.12, -0.1)), body)
+    return root
+
+
+def block_(name, sx, sy, sz, col, at, rot):
+    from hard import block
+    return block(name, sx, sy, sz, col, bevel=0.005, at=at, rot=rot)
+
+
+# ───────────────────────────────────────────── Orbital Laser
+def orbital():
+    """A satellite: a gold-foil hexagonal bus, two long solar wings (their
+    own part, so they can trim toward the sun), a dish, and a lens barrel
+    underneath that aims at the star."""
+    from hard import beam, block, cylinder
+    GOLD, GOLD_D, CELL, FRAME = C("#e0b040"), C("#a07020"), C("#1a3a8a"), C("#c8ccd4")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    rnd = random.Random(5)
+    root = character("orbital")
+    bus = cylinder("o_bus", 0.55, 0.55, 1.1, GOLD, segs=6, bevel=0.03, at=(0, 0, -0.55), flat=True)
+    paint_faces(bus, lambda c, n, i: mix(GOLD_D, GOLD, rnd.random() * 0.6 + 0.4 * max(0, n.z)))
+    bus.data.materials.clear()
+    bus.data.materials.append(METAL)
+    bands = [cylinder(f"o_band{k}", 0.57, 0.57, 0.06, FRAME, segs=6, bevel=0, at=(0, 0, z), flat=True) for k, z in enumerate((-0.5, 0.45))]
+    dish = cylinder("o_dish", 0.06, 0.48, 0.22, C("#f2f2f4"), segs=16, bevel=0.01, at=(0, 0, 0.6))
+    feed = cylinder("o_feed", 0.03, 0.03, 0.4, FRAME, segs=6, bevel=0, at=(0, 0, 0.6))
+    beacon = blob("o_beacon", (0.05, 0.05, 0.05), (0.3, 0.3, 0.6), 1)
+    beacon.data.materials.clear()
+    beacon.data.materials.append(GLOW)
+    paint_solid(beacon, C("#ff3a3a"))
+    body = part(join([bus, *bands, dish, feed, beacon], "o_bodyj"), "orbital_body", Vector((0, 0, 0)), root)
+    wing_bits = []
+    for sx in (-1, 1):
+        wing_bits.append(beam(f"o_boom{sx}", (sx * 0.5, 0, 0), (sx * 1.05, 0, 0), 0.06, FRAME))
+        for k in range(4):
+            x = sx * (1.4 + k * 0.68)
+            panel = block(f"o_panel{sx}{k}", 0.62, 0.95, 0.04, CELL, bevel=0.005, at=(x, 0, -0.02))
+            paint_faces(panel, lambda c, n, i: mix(CELL, C("#3a6ad0"), 0.35 if n.z > 0.5 else 0.0))
+            wing_bits.append(gloss_(panel))
+            wing_bits.append(block(f"o_frame{sx}{k}", 0.05, 0.97, 0.05, FRAME, bevel=0, at=(x - sx * 0.33, 0, -0.025)))
+            wing_bits.append(block(f"o_mid{sx}{k}", 0.62, 0.03, 0.05, FRAME, bevel=0, at=(x, 0, -0.025)))
+    part(join(wing_bits, "o_wingsj"), "orbital_wings", Vector((0, 0, 0)), body)
+    barrel = cylinder("o_barrel", 0.3, 0.26, 0.8, C("#3a3c44"), segs=14, bevel=0.02, at=(0, 0, -1.35))
+    collar = cylinder("o_collar", 0.36, 0.36, 0.1, FRAME, segs=14, bevel=0.01, at=(0, 0, -0.75))
+    fins = [block(f"o_fin{k}", 0.04, 0.5, 0.35, C("#2a2c34"), bevel=0, at=(0, 0, -1.1), rot=k * math.pi / 2) for k in range(2)]
+    lens = blob("o_lens", (0.22, 0.22, 0.08), (0, 0, -1.37), 2)
+    lens.data.materials.clear()
+    lens.data.materials.append(GLOW)
+    paint(lens, lambda co, n, *_: mix(C("#ff2a4a"), C("#ffd0d8"), max(0, -n.z) * 0.6))
+    lb = join([barrel, collar, *fins, lens], "o_lensj")
+    lb.data.materials[0] = METAL
+    part(lb, "orbital_lens", Vector((0, 0, -0.6)), body)
+    return root
+
+
+def gloss_(ob):
+    ob.data.materials.clear()
+    ob.data.materials.append(GLOSS)
+    return ob
+
+
+# ───────────────────────────────────────────── Moon Cannon
+def moon():
+    """A small cratered moon with a cannon strapped to it: a steel collar
+    band, a fat barrel (its own part, so it can aim) and little thrusters."""
+    from hard import cylinder
+    MOONC, MOON_D = C("#e8e2d0"), C("#a8a090")
+    STEEL_ = C("#5a6070")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    rnd = random.Random(8)
+    root = character("moon")
+    body = blob("m_body", (2.2, 2.2, 2.2), (0, 0, 0), 4)
+    craters = [(Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1))).normalized(), rnd.uniform(0.18, 0.45)) for _ in range(16)]
+    for v in body.data.vertices:
+        n = v.co.normalized()
+        d = 0.0
+        for c, rad in craters:
+            a = math.acos(max(-1, min(1, n.dot(c))))
+            x = a / rad
+            if x < 1:
+                d -= 0.12 * (1 - x * x)
+            d += 0.05 * math.exp(-((x - 1) / 0.25) ** 2)
+        v.co = n * (2.2 + d)
+
+    def mc(co, n, *_):
+        r = co.length / 2.2
+        return mix(MOON_D, MOONC, max(0, min(1, (r - 0.95) * 8)) * 0.8 + 0.2 * (0.5 + 0.5 * noise.noise(co * 1.5)))
+    paint(body, mc)
+    collar = cylinder("m_collar", 2.28, 2.28, 0.45, STEEL_, segs=40, bevel=0.04, at=(0, 0, -0.22))
+    collar.data.transform(Matrix.Rotation(math.pi / 2, 4, "X"))
+    collar.data.materials.clear()
+    collar.data.materials.append(METAL)
+    bits = [body, collar]
+    for k in range(6):
+        a = k / 6 * math.tau
+        rivet = blob(f"m_rivet{k}", (0.08, 0.08, 0.08), (math.cos(a) * 2.32, 0, math.sin(a) * 2.32), 1)
+        paint_solid(rivet, C("#c8ccd4"))
+        bits.append(rivet)
+    for sx in (-1, 1):
+        th = cylinder(f"m_thr{sx}", 0.22, 0.32, 0.5, STEEL_, segs=12, bevel=0.02, at=(sx * 2.2, 0.6, -1.6))
+        fl = blob(f"m_flame{sx}", (0.2, 0.2, 0.35), (sx * 2.2, 0.6, -1.85), 2)
+        fl.data.materials.clear()
+        fl.data.materials.append(GLOW)
+        paint(fl, lambda co, n, *_: mix(C("#ff7a2a"), C("#ffe9a0"), max(0, n.z)))
+        bits += [th, fl]
+    # A grumpy face: the moon is not thrilled about this either.
+    for sx in (-1, 1):
+        bits.append(eye(f"m_eye{sx}", (sx * 0.62, -2.05, 0.55), (0.24, 0.12, 0.3)))
+        brow = capsule(f"m_brow{sx}", (sx * 0.95, -2.02, 1.02), (sx * 0.3, -2.12, 0.86), 0.06, around=6)
+        paint_solid(brow, C("#4a4438"))
+        bits.append(brow)
+    mouth = capsule("m_mouth", (-0.4, -2.12, -0.35), (0.4, -2.12, -0.35), 0.06, around=6)
+    paint_solid(mouth, C("#4a4438"))
+    bits.append(mouth)
+    b = part(join(bits, "m_bodyj"), "moon_body", Vector((0, 0, 0)), root)
+    # The cannon rides on top of the collar, pointing forward (-Y).
+    Z = 2.3
+    barrel = [cylinder("m_barrel", 0.55, 0.48, 3.0, STEEL_, segs=18, bevel=0.03, axis="Y", at=(0, -1.4, Z))]
+    barrel.append(cylinder("m_muzzle", 0.66, 0.66, 0.42, C("#3a3e48"), segs=18, bevel=0.04, axis="Y", at=(0, -2.9, Z)))
+    barrel.append(cylinder("m_breech", 0.8, 0.8, 0.7, STEEL_, segs=18, bevel=0.05, axis="Y", at=(0, 0.2, Z)))
+    barrel.append(block_("m_mount", 1.0, 1.0, 0.5, STEEL_, (0, 0.1, Z - 0.75), 0.0))
+    for k in range(2):
+        barrel.append(cylinder(f"m_band{k}", 0.58, 0.58, 0.14, C("#ffb02a"), segs=18, bevel=0, axis="Y", at=(0, -0.9 - k * 1.1, Z)))
+    bore = blob("m_bore", (0.38, 0.06, 0.38), (0, -3.12, Z), 2)
+    paint_solid(bore, C("#0a0a0e"))
+    barrel.append(bore)
+    bj = join(barrel, "m_barrelj")
+    bj.data.materials[0] = METAL
+    part(bj, "moon_barrel", Vector((0, 0.1, Z)), b)
+    return root
+
+
+# ───────────────────────────────────────────── Black Hole Engine
+def blackhole():
+    """The containment rig for a black hole: a plinth, three swept pylons
+    and a heavy ring gantry (its own part; the runtime turns it). The hole
+    and its accretion disc are drawn by the runtime inside the ring."""
+    from hard import block, cylinder
+    STEEL_, DARK, TRIM = C("#4a4e5c"), C("#24242c"), C("#9a6aff")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    root = character("blackhole")
+    base = [cylinder("bh_plinth", 1.9, 2.1, 0.5, STEEL_, segs=24, bevel=0.05)]
+    base.append(cylinder("bh_step", 1.5, 1.5, 0.2, DARK, segs=24, bevel=0.03, at=(0, 0, 0.5)))
+    glow_ring = cylinder("bh_glow", 1.52, 1.52, 0.05, TRIM, segs=24, bevel=0, at=(0, 0, 0.66))
+    glow_ring.data.materials.clear()
+    glow_ring.data.materials.append(GLOW)
+    paint_solid(glow_ring, TRIM)
+    base.append(glow_ring)
+    for k in range(3):
+        a = k / 3 * math.tau + math.pi / 2
+        pts = [(math.cos(a) * (1.6 - t * 0.2), math.sin(a) * (1.6 - t * 0.2) * 0.35, 0.5 + t * 2.0) for t in (0, 0.35, 0.7, 1.0)]
+        pyl = sweep(f"bh_pylon{k}", pts, [0.22, 0.18, 0.15, 0.13], around=8)
+        paint_solid(pyl, STEEL_)
+        base.append(pyl)
+    bj = join(base, "bh_basej")
+    bj.data.materials[0] = METAL
+    b = part(bj, "blackhole_base", Vector((0, 0, 0)), root)
+    ring_pts = [(math.cos(t / 48 * math.tau) * 1.75, 0, 2.7 + math.sin(t / 48 * math.tau) * 1.75) for t in range(49)]
+    ring = sweep("bh_ring", ring_pts, 0.24, around=10)
+    paint_solid(ring, DARK)
+    inner = sweep("bh_inner", [(x * 0.88, -0.02, 2.7 + (z - 2.7) * 0.88) for x, _, z in ring_pts], 0.05, around=6)
+    inner.data.materials.clear()
+    inner.data.materials.append(GLOW)
+    paint_solid(inner, TRIM)
+    bits = [ring, inner]
+    for k in range(8):
+        a = k / 8 * math.tau
+        clamp_ = block(f"bh_clamp{k}", 0.35, 0.6, 0.35, C("#c8ccd4"), bevel=0.05, at=(math.cos(a) * 1.75, 0, 2.7 + math.sin(a) * 1.75 - 0.17))
+        bits.append(clamp_)
+    rj = join(bits, "bh_ringj")
+    rj.data.materials[0] = METAL
+    part(rj, "blackhole_ring", Vector((0, 0, 2.7)), b)
+    return root
+
+
 # ───────────────────────────────────────────── gear and projectiles
 def gear():
     rock = boulder("proj_rock", 77, size=0.14, squash=0.85, moss=False, facets=14, subdiv=2,
@@ -561,9 +882,15 @@ treb_root = trebuchet()
 knight_root = knight()
 steam_root = steam()
 factory_root = factory()
+turret_root = turret()
+jet_root = jet()
+drone_root = drone()
+orbital_root = orbital()
+moon_root = moon()
+bh_root = blackhole()
 gear()
 
-for prefix in ("monkey_", "gorilla_", "trebuchet_", "knight_", "steam_", "factory_", "proj_"):
+for prefix in ("monkey_", "gorilla_", "trebuchet_", "knight_", "steam_", "factory_", "turret_", "jet_", "drone_", "orbital_", "moon_", "blackhole_", "proj_"):
     parts = [o for o in OUTC.objects if o.type == "MESH" and o.name.startswith(prefix)]
     bake_ao(parts, samples=160, distance=0.22, strength=0.45, ground=False)
 export_glb(OUT, objs=list(OUTC.objects))
@@ -576,6 +903,12 @@ if PREVIEW:
     knight_root.location = (2.2, 0.8, 0)
     steam_root.location = (-1.2, -0.6, 0)
     factory_root.location = (4.5, 3.5, 0)
+    turret_root.location = (1.4, -1.6, 0)
+    jet_root.location = (-3.5, -2.0, 1.6)
+    drone_root.location = (3.2, -2.2, 1.4)
+    drone_root.scale = (1.6, 1.6, 1.6)
+    orbital_root.location = (0.0, 4.5, 3.6)
+    orbital_root.scale = (0.6, 0.6, 0.6)
     bpy.ops.mesh.primitive_plane_add(size=20)
     gp = bpy.context.active_object
     paint_solid(gp, C("#7d8a48"))
@@ -584,3 +917,17 @@ if PREVIEW:
     monkey_root.rotation_euler = (0, 0, math.radians(-50))
     gorilla_root.rotation_euler = (0, 0, math.radians(50))
     preview(PREVIEW.replace(".png", "_3q.png"), eye=(0.0, -3.4, 1.9), target=(0, 0, 0.42), lens=60, size=(960, 600), sun_dir=(-0.5, -0.6, 0.6), world_rgb=(0.55, 0.5, 0.55), sun=3.0)
+    # Close-up of the flying crew (drone, satellite) for QA.
+    for r in (monkey_root, gorilla_root, treb_root, knight_root, steam_root, factory_root, turret_root, jet_root):
+        r.location.z -= 50
+    drone_root.location = (-0.9, -1.2, 1.3)
+    drone_root.scale = (2.2, 2.2, 2.2)
+    drone_root.rotation_euler = (0, 0, math.radians(-25))
+    orbital_root.location = (1.3, 1.5, 1.9)
+    orbital_root.scale = (0.45, 0.45, 0.45)
+    orbital_root.rotation_euler = (math.radians(15), 0, math.radians(20))
+    moon_root.location = (-3.5, 6.0, 2.5)
+    moon_root.scale = (0.5, 0.5, 0.5)
+    bh_root.location = (3.4, 5.0, 0.0)
+    bh_root.scale = (0.6, 0.6, 0.6)
+    preview(PREVIEW.replace(".png", "_fly.png"), eye=(0.0, -6.0, 2.6), target=(0.2, 0.5, 1.5), lens=45, size=(960, 600), sun_dir=(-0.5, -0.6, 0.6), world_rgb=(0.35, 0.3, 0.45), sun=3.0)

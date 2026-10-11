@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import type { EmojiAtlas, FlyingEmoji } from '../sprites';
-import type { Particles } from '../particles';
+import { Shape, type Particles } from '../particles';
 import type { EraKit } from '../eraKit';
 import { loadModel } from '../assets';
 import { SpriteMinions, type ImpactFn } from './legacy';
 import { Crowd, GearPool, gearFromGltf, rigsFromGltf, type Rig } from './rig';
 import { Creature, type Circle, type Env, type Spot } from './creatures';
-import { Factory, Knight, Trebuchet, type Unit } from './machines';
+import { BlackHoleEngine, Drone, Factory, HoleFx, Jet, Knight, MoonCannon, Orbital, Trebuchet, Turret, type Unit } from './machines';
 import layout from './layout.json';
 
 const STAR = new THREE.Vector3(0, 1.25, 0);
@@ -23,7 +23,7 @@ interface KindDef {
   color: THREE.Color;
   make(rig: Rig, index: number): Unit;
   /** 'touch': hits where it stands; 'throw': a rock from the hands; 'sling': a boulder from the muzzle. */
-  attack: 'touch' | 'throw' | 'sling';
+  attack: 'touch' | 'throw' | 'sling' | 'shoot' | 'strafe' | 'zap' | 'beam' | 'lob' | 'pull';
   /** Projectile gear for slung attacks. */
   ammo?: 'rock' | 'glove';
   strength: number;
@@ -37,6 +37,12 @@ const KINDS: Record<string, KindDef> = {
   trebuchet: { max: 3, rate: 0.35, color: new THREE.Color(0xffb070), make: (r, i) => new Trebuchet(r, slot(layout.trebuchet[i])), attack: 'sling', strength: 0.6, shadow: 1.8 },
   knight: { max: 4, rate: 0.5, color: new THREE.Color(0xd8e4ff), make: (r, i) => new Knight(r, slot(layout.knight[i])), attack: 'touch', strength: 0.45, shadow: 1.1 },
   steam: { max: 6, rate: 0.8, color: new THREE.Color(0xffffff), make: (r) => new Creature('steam', r), attack: 'touch', strength: 0.3, shadow: 0.5 },
+  turret: { max: 6, rate: 2.2, color: new THREE.Color(0xffd060), make: (r, i) => new Turret(r, slot(layout.turret[i])), attack: 'shoot', strength: 0.18, shadow: 0.7 },
+  jet: { max: 3, rate: 0.25, color: new THREE.Color(0xffe080), make: (r, i) => new Jet(r, i), attack: 'strafe', strength: 0.18, shadow: 0 },
+  drone: { max: 10, rate: 2.0, color: new THREE.Color(0x60ffe0), make: (r, i) => new Drone(r, i), attack: 'zap', strength: 0.2, shadow: 0.3 },
+  orbital: { max: 4, rate: 0.5, color: new THREE.Color(0xff4060), make: (r, i) => new Orbital(r, i), attack: 'beam', strength: 0.7, shadow: 0 },
+  moon: { max: 1, rate: 0.45, color: new THREE.Color(0xfff0b0), make: (r) => new MoonCannon(r), attack: 'lob', strength: 1.2, shadow: 0 },
+  blackhole: { max: 1, rate: 2.5, color: new THREE.Color(0xa060ff), make: (r, i) => new BlackHoleEngine(r, slot(layout.blackhole[i])), attack: 'pull', strength: 0.35, shadow: 2.0 },
   factory: { max: 2, rate: 0.6, color: new THREE.Color(0xffd0a0), make: (r, i) => new Factory(r, slot(layout.factory[i])), attack: 'sling', ammo: 'glove', strength: 0.5, shadow: 0 },
 };
 
@@ -58,6 +64,8 @@ interface Flight {
   /** After impact: ballistic tumble off the star. */
   vel: THREE.Vector3;
   after: number;
+  /** Leaves a smoky, ember-lit trail (moon boulders). */
+  trail?: boolean;
 }
 
 interface Pack {
@@ -148,6 +156,7 @@ export class Minions {
           this.bananas = new GearPool(banana, KINDS.monkey.max);
           this.group.add(this.bananas.group);
         }
+        this.group.add(this.hole.group);
         this.rigs = rigs;
         this.sync(this.owned, true);
       })
@@ -204,9 +213,9 @@ export class Minions {
     this.spotKit = kit;
     for (const pack of this.packs.values()) for (const u of pack.units) u.release();
     const spots = new Map<string, Spot[]>();
-    const add = (kind: string, x: number, z: number, yaw: number): void => {
+    const add = (kind: string, x: number, z: number, yaw: number, lift = 0): void => {
       const list = spots.get(kind) ?? [];
-      list.push({ pos: new THREE.Vector3(x, 0, z), yaw, kind, taken: null });
+      list.push({ pos: new THREE.Vector3(x, 0, z), yaw, kind, taken: null, lift });
       spots.set(kind, list);
     };
     // Poke spots: on the dais rim, round the sides and back (the front stays clear for the star's face).
@@ -233,7 +242,8 @@ export class Minions {
     }
     for (const a of kit?.anchorsOf('rest_') ?? []) {
       const kind = String(a.data.kind ?? 'seat');
-      add(kind, a.pos.x, a.pos.z, Number(a.data.yaw ?? 0) + Math.PI);
+      const lift = kind === 'seat' ? Math.max(0, a.pos.y - this.world.heightAt(a.pos.x, a.pos.z)) : 0;
+      add(kind, a.pos.x, a.pos.z, Number(a.data.yaw ?? 0) + Math.PI, lift);
     }
     if (!spots.get('seat')) for (const a of [2.4, -2.4, 2.9]) add('seat', Math.sin(a) * 4.6, Math.cos(a) * 4.6, a + Math.PI);
     if (!spots.get('eat')) add('eat', 4.6, -5.2, 0.4);
@@ -266,6 +276,14 @@ export class Minions {
     if (!this.rigs) return;
     if (this.world.kit() !== this.spotKit) this.refreshSpots();
     const t = this.time;
+    for (let i = this.pending.length - 1; i >= 0; i--) {
+      if (this.pending[i].at <= t) {
+        const { fn } = this.pending[i];
+        this.pending[i] = this.pending[this.pending.length - 1];
+        this.pending.pop();
+        fn();
+      }
+    }
 
     for (const [id, pack] of this.packs) {
       const list = pack.units;
@@ -292,6 +310,8 @@ export class Minions {
     }
 
     this.updateFlights(dt);
+    const bh = this.packs.get('blackhole')?.units[0];
+    this.hole.update(dt, t, bh instanceof BlackHoleEngine ? bh : null);
     this.puffs(dt);
     this.draw();
   }
@@ -332,6 +352,84 @@ export class Minions {
       u.attack(() => this.onImpact(this.hitPoint(u, u instanceof Creature ? 0.75 : 1.05, new THREE.Vector3()), def.strength, def.color));
       return;
     }
+    if (def.attack === 'shoot' || def.attack === 'strafe') {
+      u.attack(() => {
+        const shots = def.attack === 'strafe' ? 6 : 1;
+        for (let i = 0; i < shots; i++) {
+          const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone();
+          const to = this.hitPoint(u, 1.0 + (Math.random() - 0.5) * 0.6, new THREE.Vector3());
+          to.x += (Math.random() - 0.5) * 0.3;
+          this.tracer(from, to, i * 0.07, def);
+        }
+      });
+      return;
+    }
+    if (def.attack === 'zap') {
+      u.attack(() => {
+        const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone();
+        const to = this.hitPoint(u, THREE.MathUtils.clamp(from.y, 0.7, 1.9), new THREE.Vector3());
+        this.arc(from, to, def.color);
+        this.onImpact(to, def.strength, def.color);
+      });
+      return;
+    }
+    if (def.attack === 'beam') {
+      u.attack(() => {
+        const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone().setY(12);
+        // Charge: motes stream into the lens, then the beam drops.
+        for (let i = 0; i < 14; i++) {
+          const d = tmpV.randomDirection().multiplyScalar(0.9 + Math.random() * 0.5);
+          const life = 0.35 + Math.random() * 0.2;
+          this.particles.glow.spawn({
+            x: from.x + d.x, y: from.y + d.y, z: from.z + d.z, vx: -d.x / life, vy: -d.y / life, vz: -d.z / life,
+            life, size: 0.08, sizeEnd: 0.02, r: 4, g: 0.8, b: 1.2, shape: Shape.Spark, stretch: 0.04,
+            delay: Math.random() * (Orbital.CHARGE - life),
+          });
+        }
+        this.particles.flash(from, def.color, 0.9, Orbital.CHARGE, 2.5);
+        this.later(Orbital.CHARGE, () => {
+          const src = u.muzzle ? u.muzzle(new THREE.Vector3()) : from;
+          const to = src.clone().sub(STAR).normalize().multiplyScalar(0.98).add(STAR);
+          this.particles.beam(src, to, new THREE.Color(1, 0.35, 0.45), 0.9, 0.32, 2.2);
+          this.particles.beam(src, to, new THREE.Color(1, 0.85, 0.9), 0.32, 0.36, 6);
+          this.particles.flash(to, new THREE.Color(1, 0.5, 0.55), 2.4, 0.3, 4);
+          this.particles.ring(to, new THREE.Color(1, 0.45, 0.55), 2.8, 0.4, 2.2);
+          this.particles.sparks(to, 22, new THREE.Color(1, 0.55, 0.6), 6);
+          this.onImpact(to, def.strength, def.color);
+        });
+      });
+      return;
+    }
+    if (def.attack === 'lob') {
+      u.attack(() => {
+        const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone().setY(8);
+        this.particles.flash(from, new THREE.Color(1, 0.8, 0.5), 2.2, 0.2, 4);
+        this.particles.smoke(from, 6, new THREE.Color(0xd8d0c8), { size: 0.6, sizeEnd: 2.4, life: 1.4, a: 0.5 });
+        this.launch(from, this.hitPoint(u, 1.9, new THREE.Vector3()), 1.7, 3.2, 3.4, def);
+        this.flights[this.flights.length - 1].trail = true;
+      });
+      return;
+    }
+    if (def.attack === 'pull') {
+      u.attack(() => {
+        const hole = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone();
+        const at = this.hitPoint(u, 1.25 + (Math.random() - 0.5) * 0.8, new THREE.Vector3());
+        // Matter streams off the star's surface and down the hole.
+        for (let i = 0; i < 10; i++) {
+          const p0 = tmpV.copy(at).add(tmpV2.randomDirection().multiplyScalar(0.25));
+          const d = hole.clone().sub(p0);
+          const life = 0.55 + Math.random() * 0.25;
+          const hot = Math.random() < 0.5;
+          this.particles.glow.spawn({
+            x: p0.x, y: p0.y, z: p0.z, vx: d.x / life, vy: d.y / life, vz: d.z / life,
+            life, size: 0.07, sizeEnd: 0.02, r: hot ? 4 : 2.2, g: hot ? 2.4 : 1.2, b: hot ? 0.8 : 4, shape: Shape.Spark, stretch: 0.05,
+            delay: i * 0.05,
+          });
+        }
+        this.onImpact(at, def.strength, def.color);
+      });
+      return;
+    }
     if (def.attack === 'throw') {
       u.attack(() => {
         const from = this.handPoint(pack, u as Creature);
@@ -344,6 +442,41 @@ export class Minions {
       const glove = def.ammo === 'glove';
       this.launch(from, this.hitPoint(u, glove ? 1.3 : 1.6, new THREE.Vector3()), glove ? 1.4 : 1.25, glove ? 5 : 3.5, glove ? 1.6 : 2.2, def);
     });
+  }
+
+  /** A jagged electric arc (a few short beams with a kinked path). */
+  private arc(from: THREE.Vector3, to: THREE.Vector3, color: THREE.Color): void {
+    const n = 4;
+    let a = from.clone();
+    const side = new THREE.Vector3();
+    for (let i = 1; i <= n; i++) {
+      const b = from.clone().lerp(to, i / n);
+      if (i < n) b.add(side.randomDirection().multiplyScalar(0.12));
+      this.particles.beam(a, b, color, 0.05, 0.12, 5);
+      a = b;
+    }
+    this.particles.flash(from, color, 0.35, 0.1, 4);
+    this.particles.flash(to, color, 0.7, 0.14, 4);
+    this.particles.sparks(to, 6, color, 3);
+  }
+
+  /** A glowing round from `from` to `to`, landing after its travel time. */
+  private tracer(from: THREE.Vector3, to: THREE.Vector3, delay: number, def: KindDef): void {
+    const d = to.clone().sub(from);
+    const travel = 0.1 + d.length() * 0.012;
+    this.particles.glow.spawn({
+      x: from.x, y: from.y, z: from.z, vx: d.x / travel, vy: d.y / travel, vz: d.z / travel,
+      life: travel, size: 0.05, r: 4, g: 3, b: 1.2, stretch: 0.03, shape: Shape.Spark, delay,
+    });
+    if (delay === 0) this.particles.flash(from, new THREE.Color(1, 0.8, 0.4), 0.5, 0.07, 3);
+    this.later(travel + delay, () => this.onImpact(to, def.strength, def.color));
+  }
+
+  private pending: { at: number; fn: () => void }[] = [];
+  private readonly hole = new HoleFx();
+
+  private later(sec: number, fn: () => void): void {
+    if (this.pending.length < 200) this.pending.push({ at: this.time + sec, fn });
   }
 
   private launch(from: THREE.Vector3, to: THREE.Vector3, dur: number, arc: number, size: number, def: KindDef): void {
@@ -366,11 +499,23 @@ export class Minions {
     return l.add(r).multiplyScalar(0.5).add(new THREE.Vector3(0, 0.07, 0));
   }
 
+  /** A flight's position along its arc. */
+  private flightPos(f: Flight, out: THREE.Vector3): THREE.Vector3 {
+    out.lerpVectors(f.from, f.to, f.t);
+    out.y += Math.sin(f.t * Math.PI) * f.arc;
+    return out;
+  }
+
   private updateFlights(dt: number): void {
     for (let i = this.flights.length - 1; i >= 0; i--) {
       const f = this.flights[i];
       if (f.hit) {
         f.t += dt / f.dur;
+        if (f.trail && Math.random() < dt * 30) {
+          const at = this.flightPos(f, tmpV);
+          this.particles.smoke(at, 1, new THREE.Color(0xb8b0a8), { size: 0.5, sizeEnd: 1.6, life: 1.1, vy: 0.2, a: 0.4 });
+          this.particles.glow.spawn({ x: at.x, y: at.y, z: at.z, vx: 0, vy: 0, vz: 0, life: 0.3, size: 0.5, sizeEnd: 0.1, r: 2.5, g: 1.4, b: 0.6, shape: Shape.Glow });
+        }
         if (f.t >= 1) {
           f.hit();
           f.hit = null;
@@ -437,10 +582,8 @@ export class Minions {
       const pool = f.gear === 'glove' ? this.gloves : this.rocks;
       if (!pool) continue;
       let p: THREE.Vector3;
-      if (f.hit) {
-        p = tmpV.lerpVectors(f.from, f.to, f.t);
-        p.y += Math.sin(f.t * Math.PI) * f.arc;
-      } else p = tmpV.copy(f.from);
+      if (f.hit) p = this.flightPos(f, tmpV);
+      else p = tmpV.copy(f.from);
       const age = f.hit ? f.t * f.dur : f.dur + f.after;
       const s = (f.hit ? 1 : Math.max(0, 1 - Math.max(0, f.after - 1.1) / 0.5)) * f.size;
       if (f.gear === 'glove' && f.hit) {

@@ -16,6 +16,8 @@ export interface Spot {
   yaw: number;
   kind: string;
   taken: Creature | null;
+  /** Seat height above the ground (a log, a bench), 0 for ground spots. */
+  lift?: number;
 }
 
 export interface Circle {
@@ -74,6 +76,8 @@ export class Creature {
   private target: Float32Array;
   private walkPhase = Math.random() * TAU;
   private stuck = 0;
+  /** Current height above the ground: eases up onto seats. */
+  private perch = 0;
   private lastPos = new THREE.Vector3();
   readonly tint = new THREE.Color();
   readonly scale: number;
@@ -231,7 +235,7 @@ export class Creature {
         moving = true;
         const speed = (this.kind === 'monkey' ? 1.35 : this.kind === 'steam' ? 0.9 : 1.0) * this.pace * Math.min(1, dist / 0.5 + 0.35);
         const dir = d.multiplyScalar(1 / dist);
-        this.steer(dir, env, crowd);
+        this.steer(dir, env, crowd, step.to);
         this.speedNow += (speed - this.speedNow) * Math.min(1, dt * 6);
         this.pos.addScaledVector(dir, this.speedNow * dt);
         wantYaw = Math.atan2(dir.x, dir.z);
@@ -264,7 +268,9 @@ export class Creature {
     // Face the star while working; turn smoothly.
     if (step?.type === 'work' || step?.type === 'ready') wantYaw = Math.atan2(env.star.x - this.pos.x, env.star.z - this.pos.z);
     this.yaw += wrap(wantYaw - this.yaw) * Math.min(1, dt * (moving ? 8 : 5));
-    this.pos.y = env.height(this.pos.x, this.pos.z);
+    const sitting = !moving && step?.type === 'sit' && this.spot !== null;
+    this.perch += ((sitting ? (this.spot?.lift ?? 0) : 0) - this.perch) * Math.min(1, dt * 7);
+    this.pos.y = env.height(this.pos.x, this.pos.z) + this.perch;
 
     // Mode drives the pose.
     const cheering = time < this.cheerUntil;
@@ -310,9 +316,11 @@ export class Creature {
   }
 
   /** Steering: head for `dir`, slide around colliders and other creatures. */
-  private steer(dir: THREE.Vector3, env: Env, crowd: Creature[]): void {
+  private steer(dir: THREE.Vector3, env: Env, crowd: Creature[], goal: THREE.Vector3): void {
     const me = this.kind === 'monkey' ? 0.22 : 0.38;
     for (const c of env.colliders()) {
+      // The thing we're heading for (a bench, a log) doesn't push us away.
+      if (Math.hypot(goal.x - c.x, goal.z - c.z) < c.r + 0.3) continue;
       tmp2.set(c.x - this.pos.x, 0, c.z - this.pos.z);
       const d = tmp2.length();
       const reach = c.r + me + 0.25;

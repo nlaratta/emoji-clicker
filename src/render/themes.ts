@@ -83,38 +83,38 @@ export const THEMES: Theme[] = [
     hemiSky: 0xffd8a8, hemiGround: 0x3a2a20, hemiInt: 0.56, keyColor: 0xffc890, keyInt: 2.35, rimColor: 0xff9a50, rimInt: 1.25,
     platform: 0x6a5a40, platformRim: 0xffb347, bloom: 0.5, fogNear: 14, fogFar: 125, accent: '#ffb347',
   },
-  // IV — Modern night city
+  // IV — Blue hour downtown: cool moonlight, warm sodium lamps, lit windows.
   {
-    skyTop: 0x060c22, skyHorizon: 0x2a3a6a, skyBottom: 0x080a14,
-    sunDir: [-0.3, 0.6, -0.75], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xd8e4ff, sunSize: 0.035, sunStripes: 0,
-    stars: 0.5, nebula: 0.1, nebA: 0x1a2a6a, nebB: 0x6a2a6a,
-    clouds: 0.25, cloudColor: 0x3a3a5a, ridge: 0, ridgeColor: 0x000000, skyline: 1, warp: 0,
+    skyTop: 0x0a1230, skyHorizon: 0x3c4c86, skyBottom: 0x0a0c18,
+    sunDir: [-0.3, 0.55, -0.78], keyDir: [-0.4, 0.75, 0.5], sunColor: 0xd8e4ff, sunSize: 0.035, sunStripes: 0,
+    stars: 0.45, nebula: 0.08, nebA: 0x1a2a6a, nebB: 0x6a2a6a,
+    clouds: 0.25, cloudColor: 0x3a3a5a, ridge: 0, ridgeColor: 0x000000, skyline: 0.6, warp: 0,
     groundA4: [0, 0, 0, 1], groundB4: [0, 0, 0, 0], groundA: 0x2a2c34, groundB: 0x1a1c22, gridColor: 0xffd23f,
-    fog: 0x141a34,
-    hemiSky: 0x9ab4ff, hemiGround: 0x1a1a2a, hemiInt: 0.55, keyColor: 0xdfe8ff, keyInt: 1.76, rimColor: 0x4ab0ff, rimInt: 2.2,
-    platform: 0x3a3c44, platformRim: 0x4ab0ff, bloom: 0.9, fogNear: 60, fogFar: 260, accent: '#4ab0ff',
+    fog: 0x1e2648,
+    hemiSky: 0x6a80c4, hemiGround: 0x1c1c2c, hemiInt: 0.36, keyColor: 0xb4c8ff, keyInt: 1.05, rimColor: 0x4ab0ff, rimInt: 1.6,
+    platform: 0x3a3c44, platformRim: 0x4ab0ff, bloom: 0.85, fogNear: 22, fogFar: 150, accent: '#4ab0ff',
   },
-  // V — Neon future (synthwave)
+  // V — Neon Overdrive: rain-slick night, magenta city-glow on low cloud, cyan and amber signage.
   {
-    skyTop: 0x12002a, skyHorizon: 0xff2a8a, skyBottom: 0x0a0018,
-    sunDir: [0, 0.16, -1], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xffc23a, sunSize: 0.22, sunStripes: 1,
-    stars: 0.7, nebula: 0.2, nebA: 0x4a00aa, nebB: 0xff0088,
-    clouds: 0, cloudColor: 0x000000, ridge: 0.5, ridgeColor: 0x1a0030, skyline: 0, warp: 0,
-    groundA4: [0, 0, 0, 0], groundB4: [1, 0, 0, 0], groundA: 0x0a0018, groundB: 0x12002a, gridColor: 0xff3ad0,
-    fog: 0x3a0050,
-    hemiSky: 0xff8ae0, hemiGround: 0x2a0050, hemiInt: 0.59, keyColor: 0xffe0f4, keyInt: 1.6, rimColor: 0x3af0ff, rimInt: 2.6,
-    platform: 0x1a1030, platformRim: 0x3af0ff, bloom: 1.15, fogNear: 60, fogFar: 260, accent: '#ff3ad0',
+    skyTop: 0x0a0a22, skyHorizon: 0x7a2a6a, skyBottom: 0x0a0814,
+    sunDir: [0.35, 0.5, -0.8], keyDir: [-0.35, 0.7, 0.55], sunColor: 0xd8c8ff, sunSize: 0.02, sunStripes: 0,
+    stars: 0.08, nebula: 0.12, nebA: 0x3a1a6a, nebB: 0xff2a8a,
+    clouds: 0.55, cloudColor: 0x6a2a6a, ridge: 0, ridgeColor: 0x000000, skyline: 0, warp: 0,
+    groundA4: [0, 0, 0, 1], groundB4: [0, 0, 0, 0], groundA: 0x16161e, groundB: 0x101016, gridColor: 0xff3ad0,
+    fog: 0x2a1438,
+    hemiSky: 0x8a6ad8, hemiGround: 0x1a1024, hemiInt: 0.42, keyColor: 0xc8b8ff, keyInt: 1.0, rimColor: 0x3af0ff, rimInt: 2.2,
+    platform: 0x1e1e2a, platformRim: 0x3af0ff, bloom: 1.0, fogNear: 18, fogFar: 125, accent: '#ff3ad0',
   },
-  // VI — Cosmic void
+  // VI — An asteroid outpost: hard white sunlight, deep violet shadow, nebula and a ringed giant overhead.
   {
-    skyTop: 0x02020a, skyHorizon: 0x0a0a24, skyBottom: 0x02020a,
-    sunDir: [0.7, 0.3, -0.65], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xfff0d0, sunSize: 0.03, sunStripes: 0,
-    stars: 1, nebula: 1, nebA: 0x2a0a6a, nebB: 0x0a6a8a,
+    skyTop: 0x04030c, skyHorizon: 0x24124a, skyBottom: 0x04030a,
+    sunDir: [0.5, 0.55, 0.65], keyDir: [0.5, 0.55, 0.65], sunColor: 0xfff4e0, sunSize: 0.025, sunStripes: 0,
+    stars: 1, nebula: 0.95, nebA: 0x5a2a9a, nebB: 0x1a7aa8,
     clouds: 0, cloudColor: 0x000000, ridge: 0, ridgeColor: 0x000000, skyline: 0, warp: 0,
-    groundA4: [0, 0, 0, 0], groundB4: [0, 1, 0, 0], groundA: 0x000000, groundB: 0x000000, gridColor: 0x7a8aff,
-    fog: 0x05051a,
-    hemiSky: 0xa0b4ff, hemiGround: 0x1a0a2a, hemiInt: 0.51, keyColor: 0xfff2e0, keyInt: 1.92, rimColor: 0x9a6aff, rimInt: 2.6,
-    platform: 0x4a4250, platformRim: 0x9a6aff, bloom: 1.1, fogNear: 60, fogFar: 260, accent: '#9a6aff',
+    groundA4: [0, 0, 0, 1], groundB4: [0, 0, 0, 0], groundA: 0x3a3448, groundB: 0x2a2436, gridColor: 0x9a6aff,
+    fog: 0x120c24,
+    hemiSky: 0x8a80d8, hemiGround: 0x2a1a3a, hemiInt: 0.36, keyColor: 0xfff2e0, keyInt: 2.3, rimColor: 0x9a6aff, rimInt: 2.2,
+    platform: 0x4a4250, platformRim: 0x9a6aff, bloom: 0.85, fogNear: 70, fogFar: 380, accent: '#9a6aff',
   },
   // VII — Reality breaks
   {

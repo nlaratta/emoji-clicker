@@ -331,6 +331,10 @@ anchor("st_bananas", 5.1, -6.4, height(5.1, -6.4), kind="bananas")
 anchor("st_fire", -3.7, -2.5, height(-3.7, -2.5), kind="warm")
 for i, (x, z) in enumerate([(-30, -26), (30, -24)]):
     anchor(f"path_mammoth_{i}", x, z, height(x, z), kind="path")
+# Anchors go in the exported collection with everything else.
+for o in list(bpy.context.scene.collection.objects):
+    if o.get("role") == "anchor":
+        move_to(o, world)
 
 # Wildlife: two mammoths wander the far plain (animated by the runtime).
 mam = mammoth("mammoth")

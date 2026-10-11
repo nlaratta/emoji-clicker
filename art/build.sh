@@ -10,7 +10,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 BLENDER="${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}"
 KITS=("$@")
-[ ${#KITS[@]} -eq 0 ] && KITS=(era0 minions)
+[ ${#KITS[@]} -eq 0 ] && KITS=(era0 era1 era2 era3 minions)
 mkdir -p art/previews art/.raw src/assets/models
 for kit in "${KITS[@]}"; do
   echo "── $kit"

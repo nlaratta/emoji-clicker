@@ -79,7 +79,10 @@ class Composer:
         return out
 
     def anchor(self, name, x, z, dy=0.0, **props):
-        return anchor(name, x, z, self.height(x, z) + dy, **props)
+        # Anchors live in the world collection too, or the export skips them.
+        e = anchor(name, x, z, self.height(x, z) + dy, **props)
+        move_to(e, self.world)
+        return e
 
     def add_anim(self, objs, x, z, yaw=0.0, dy=0.0, scale=1.0):
         """Move an `anim` hierarchy (root first) into the world."""
@@ -93,6 +96,17 @@ class Composer:
         root.scale = (scale, scale, scale)
         self.anims.extend(objs)
         return root
+
+    def slot_clear(self, x, z, r, margin=1.0):
+        """True if a prop of radius `r` at (x, z) keeps clear of every minion
+        slot in layout.json (so big scenery never lands on a machine)."""
+        for key, pts in LAYOUT.items():
+            if key.startswith("_") or key in ("rockpile", "printer", "paradox"):
+                continue
+            for px, pz in pts:
+                if math.hypot(x - px, z - pz) < r + margin:
+                    return False
+        return True
 
     def clear_of(self, x, z, r):
         """True if no footprint overlaps the circle (keep minion spots clear)."""
