@@ -400,9 +400,12 @@ function advanceSim(seconds: number): void {
   }
 }
 
+let lastFrameAt = performance.now();
+
 function frame(now: number): void {
   const dt = Math.min(Math.max(0, (now - last) / 1000), 30 * 60);
   last = now;
+  lastFrameAt = performance.now();
   syncSim();
   react(game.drainEvents());
   const vdt = Math.min(dt, 0.1);
@@ -423,22 +426,29 @@ function frame(now: number): void {
 }
 requestAnimationFrame(frame);
 
-// Keep the economy honest while hidden (rAF pauses); browsers throttle this to ~1/s or slower.
+// Keep the economy honest whenever frames stop coming: hidden tabs (rAF
+// pauses; browsers throttle this timer to ~1/s or slower there) and frames
+// stalled behind a slow GPU. Events (toasts, boss outcomes) still land.
 setInterval(() => {
-  if (document.visibilityState !== 'hidden') return;
+  if (document.visibilityState !== 'hidden' && performance.now() - lastFrameAt < 400) return;
   syncSim();
-  // Still deliver events (toasts, achievements); visuals also reconcile from state.
   react(game.drainEvents());
-}, 1000);
+}, 250);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     // A boss fight can't be won (or lost) while nobody is watching.
     if (started && game.abandonBoss()) bossAbandoned = true;
+    // Apply it now (the shell comes off) rather than on a frame that may never come.
+    react(game.drainEvents());
     persist();
     audio.suspend();
   } else {
     audio.resume();
+    // Catch up and match the scene to the state straight away on return.
+    syncSim();
+    react(game.drainEvents());
+    if (view instanceof GameScene) view.syncState(game);
   }
 });
 

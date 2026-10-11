@@ -628,6 +628,11 @@ export class GameScene {
    * so an event dropped while the tab was hidden can't leave a stale shell or
    * a ghost golden Freakmoji behind.
    */
+  /** Match the presentation to the game state now (without waiting for a frame). */
+  syncState(game: Game): void {
+    this.reconcile(game);
+  }
+
   private reconcile(game: Game): void {
     const s = game.state;
     if (!s.boss && this.shell.active) this.shell.end();
