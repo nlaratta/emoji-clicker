@@ -70,7 +70,7 @@ export function gasp(kit: Kit, out: Out, t: number, o: GaspOpts = {}): Voice {
   breath.connect(breathGain);
 
   // Formant bank. F1 opens slightly as the "mouth" opens.
-  const mix = v.gain(big ? 0.34 : 0.28);
+  const mix = v.gain(big ? 0.42 : 0.36);
   for (let i = 0; i < 3; i++) {
     const fc = vowel[i] * shift;
     const bp = v.filter('bandpass', fc, FORMANT_Q[i]);

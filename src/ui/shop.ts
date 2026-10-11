@@ -8,7 +8,7 @@ import { ACHIEVEMENTS, ACHIEVEMENT_BONUS } from '../content/achievements';
 import { ERAS } from '../content/eras';
 import { fmt, fmtRate, fmtTime, fmtPct } from '../core/format';
 import { maxAffordable, nextParanoiaAt, nodeAvailable, paranoiaGain, producerGps, weaponCost } from '../sim/economy';
-import type { UiSound } from '../audio/stub';
+import type { UiSound } from '../audio/engine';
 
 export type TabId = 'arsenal' | 'minions' | 'upgrades' | 'paranoia' | 'feats' | 'stats';
 

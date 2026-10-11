@@ -3,7 +3,7 @@ import { fmt, fmtTime } from '../core/format';
 import type { Settings, Quality } from '../app/settings';
 import type { OfflineReport } from '../sim/game';
 import { ERAS } from '../content/eras';
-import type { UiSound } from '../audio/stub';
+import type { UiSound } from '../audio/engine';
 
 // ── Title / continue screen ───────────────────────────────────────────
 

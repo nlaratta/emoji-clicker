@@ -5,7 +5,7 @@ import { loadSettings, saveSettings, type Settings } from './app/settings';
 import { setNotation, fmt } from './core/format';
 import { GameScene } from './render/scene';
 import { FallbackScene } from './render/fallback';
-import { AudioEngine } from './audio/stub';
+import { AudioEngine } from './audio/engine';
 import { Hud } from './ui/hud';
 import { Shop } from './ui/shop';
 import { Announcer, Toasts, openSettings, showEraCard, showTitle } from './ui/overlays';
@@ -98,6 +98,7 @@ function applySettings(): void {
 let chargeStartedAt = 0;
 function abilityDown(id: AbilityId): void {
   audio.unlock();
+  syncSim();
   if (id === 'haymaker') {
     if (game.startCharge()) chargeStartedAt = performance.now();
     else if (game.abilityUnlocked(id)) audio.ui('deny');
@@ -106,6 +107,7 @@ function abilityDown(id: AbilityId): void {
   if (!game.activate(id) && game.abilityUnlocked(id)) audio.ui('deny');
 }
 function abilityUp(id: AbilityId): void {
+  syncSim();
   if (id === 'haymaker' && game.state.charge) game.releaseCharge((performance.now() - chargeStartedAt) / 1000);
 }
 
@@ -170,6 +172,7 @@ let started = false;
 
 function pokeAt(clientX: number, clientY: number): void {
   if (!started) return;
+  syncSim();
   const hit = view.pick(clientX, clientY);
   if (!hit) return;
   if (hit.kind === 'golden') game.catchGolden();
@@ -198,6 +201,7 @@ document.addEventListener('keydown', (e) => {
   const onButton = e.target instanceof HTMLButtonElement && e.target !== pokeButton;
   if ((e.key === ' ' || e.key === 'Enter') && !onButton) {
     e.preventDefault();
+    syncSim();
     if (!e.repeat || e.key === ' ') game.poke({ source: 'key' });
     return;
   }
@@ -312,7 +316,19 @@ function showTabLock(): void {
 // ── Main loop ──
 let acc = 0;
 let last = performance.now();
+/** Wall-clock time the simulation has been advanced to. */
+let simClock = performance.now();
 let shopTimer = 0;
+
+/** Bring the simulation up to the current instant. Called every frame and
+ *  before every input, so combo timing follows real input timestamps even
+ *  when frames are slow. */
+function syncSim(): void {
+  const now = performance.now();
+  const dt = Math.max(0, (now - simClock) / 1000);
+  simClock = now;
+  advanceSim(dt);
+}
 
 function advanceSim(seconds: number): void {
   if (!started || !hasLock) return;
@@ -333,7 +349,7 @@ function advanceSim(seconds: number): void {
 function frame(now: number): void {
   const dt = Math.min(Math.max(0, (now - last) / 1000), 30 * 60);
   last = now;
-  advanceSim(dt);
+  syncSim();
   react(game.drainEvents());
   const vdt = Math.min(dt, 0.1);
   view.frame(vdt, game);
@@ -356,10 +372,7 @@ requestAnimationFrame(frame);
 // Keep the economy honest while hidden (rAF pauses); browsers throttle this to ~1/s or slower.
 setInterval(() => {
   if (document.visibilityState !== 'hidden') return;
-  const now = performance.now();
-  const dt = (now - last) / 1000;
-  last = now;
-  advanceSim(dt);
+  syncSim();
   game.drainEvents();
 }, 1000);
 
@@ -374,11 +387,11 @@ document.addEventListener('visibilitychange', () => {
 
 // ── Start ──
 showTitle(
-  { returning: loaded.source !== 'new' && game.state.stats.clicks > 0, offline, warning: loaded.warning, era: game.state.era },
+  { returning: loaded.source !== 'new' && game.state.lifetimeGasps > 0, offline, warning: loaded.warning, era: game.state.era },
   () => {
     audio.unlock();
     started = true;
-    last = performance.now();
+    last = simClock = performance.now();
     if (offline && offline.gained > 0) toasts.push('Welcome back', `Your minions earned ${fmt(offline.gained)} gasps while you were away.`, 'gold');
     announcer.say('Poke the Freakmoji: click it, tap it, or press Space.', true);
     canvas.focus?.();
@@ -414,6 +427,9 @@ showTitle(
     },
     skip(seconds: number): void {
       game.update(seconds);
+    },
+    noSave(): void {
+      resetting = true;
     },
     reset(): void {
       resetting = true;

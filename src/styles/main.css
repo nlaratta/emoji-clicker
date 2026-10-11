@@ -1465,14 +1465,20 @@ table.records tr + tr td {
   }
 
   .meters {
-    bottom: auto;
-    top: 112px;
-    width: min(320px, 70%);
+    bottom: 112px;
+    width: calc(100% - 20px);
+    gap: 4px;
   }
 
   .meter-row {
-    grid-template-columns: 70px 1fr 48px;
+    grid-template-columns: auto 1fr 44px;
+    gap: 8px;
     font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .meter-row .bar {
+    height: 8px;
   }
 
   .ticker {
@@ -1480,14 +1486,23 @@ table.records tr + tr td {
   }
 
   .toasts {
-    top: auto;
-    bottom: 70px;
-    right: 10px;
-    width: min(260px, 70%);
+    top: 104px;
+    right: 50%;
+    transform: translateX(50%);
+    width: min(320px, 82%);
+  }
+
+  .toast:nth-child(n + 3) {
+    display: none;
+  }
+
+  .toast {
+    font-size: 12px;
+    padding: 6px 10px;
   }
 
   .gate {
-    bottom: 70px;
+    bottom: 150px;
     font-size: 13px;
     padding: 8px 14px 9px;
   }
