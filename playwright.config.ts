@@ -24,7 +24,8 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'], browserName: 'chromium' }, grep: /@mobile/ },
   ],
   webServer: {
-    command: `pnpm exec vite build --base=/emoji-clicker/ --outDir dist-e2e && pnpm exec vite preview --outDir dist-e2e --base=/emoji-clicker/ --port ${PORT} --strictPort`,
+    // The exact artifact that ships (relative base), served under the Pages subpath.
+    command: `pnpm exec vite build && pnpm exec vite preview --base=/emoji-clicker/ --port ${PORT} --strictPort`,
     url: BASE,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

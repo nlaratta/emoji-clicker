@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game, MAX_MANUAL_CPS } from '../src/sim/game';
 import { createInitialState, type GameState } from '../src/sim/state';
-import { ERAS } from '../src/content/eras';
+import { ERAS, FINAL_BOSS } from '../src/content/eras';
 import { WEAPONS } from '../src/content/weapons';
 import { PRODUCERS } from '../src/content/producers';
 import { CHARGE_FULL, PERFECT_FROM } from '../src/content/abilities';
@@ -174,6 +174,29 @@ describe('bosses and eras', () => {
   });
 });
 
+describe('the final boss', () => {
+  it('breaks reality: victory is recorded and the timeline can keep going', () => {
+    const g = fresh();
+    g.state.era = ERAS.length - 1;
+    g.state.runGasps = g.state.lifetimeGasps = FINAL_BOSS.threshold;
+    g.refresh();
+    const gate = g.gateBoss();
+    expect(gate?.final).toBe(true);
+    expect(g.nextGateThreshold()).toBe(FINAL_BOSS.threshold);
+    g.startBoss();
+    g.state.producers.paradox = 1e10; // ~3e19 gasps per second: overwhelming
+    g.refresh();
+    g.update(2);
+    expect(g.state.victory).toBe(true);
+    expect(g.state.era).toBe(ERAS.length - 1);
+    expect(g.state.stats.victories).toBe(1);
+    expect(g.state.achievements.victory).toBe(true);
+    expect(g.gateBoss()).toBeNull();
+    expect(g.nextGateThreshold()).toBeNull();
+    expect(g.canCollapse()).toBe(true);
+  });
+});
+
 describe('abilities', () => {
   it('Haymaker rewards a release inside the perfect window', () => {
     const g = fresh();
@@ -267,6 +290,49 @@ describe('prestige', () => {
     expect(g.state.era).toBe(1);
     expect(g.state.weapon).toBe(0);
     expect(g.state.producers.monkey).toBe(10);
+  });
+});
+
+describe('gaps (hidden tabs, sleep)', () => {
+  it('simulates short gaps exactly and pays long gaps under offline rules', () => {
+    const a = fresh(4);
+    a.state.producers.gorilla = 100;
+    a.refresh();
+    const rate = a.gpsBase;
+    expect(a.elapse(30)).toBeNull();
+    // Full rate (achievements unlocked mid-gap may add a percent or two).
+    expect(a.state.gasps / (rate * 30)).toBeGreaterThan(0.99);
+    expect(a.state.gasps / (rate * 30)).toBeLessThan(1.05);
+
+    const b = fresh(4);
+    b.state.producers.gorilla = 100;
+    b.refresh();
+    const report = b.elapse(10 * 3600)!;
+    expect(report).not.toBeNull();
+    expect(report.credited).toBe(b.mods.offlineCap);
+    expect(b.state.gasps).toBeLessThanOrEqual(b.gpsBase * b.mods.offlineCap * b.mods.offlineEff * 1.0001);
+  });
+
+  it('a long gap during a boss fight abandons it instead of winning it', () => {
+    const g = fresh();
+    g.state.runGasps = ERAS[1].threshold;
+    g.startBoss();
+    g.state.producers.gorilla = 5000;
+    g.refresh();
+    g.elapse(3600);
+    expect(g.state.boss).toBeNull();
+    expect(g.state.era).toBe(0);
+  });
+
+  it('abandonBoss ends the fight without advancing the era', () => {
+    const g = fresh();
+    g.state.runGasps = ERAS[1].threshold;
+    g.startBoss();
+    expect(g.abandonBoss()).toBe(true);
+    expect(g.state.boss).toBeNull();
+    expect(g.state.era).toBe(0);
+    expect(g.drainEvents().some((e) => e.type === 'bossFail')).toBe(true);
+    expect(g.abandonBoss()).toBe(false);
   });
 });
 

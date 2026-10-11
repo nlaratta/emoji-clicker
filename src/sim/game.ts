@@ -720,6 +720,39 @@ export class Game {
     if (gained) this.refresh();
   }
 
+  // ── Gaps ──
+
+  /** Longest gap simulated exactly; anything longer is paid like offline time. */
+  static readonly MAX_EXACT_GAP = 90;
+
+  /**
+   * Advance by a wall-clock gap of unknown origin (frame hitch, throttled
+   * background tab, laptop sleep). Short gaps are simulated exactly; long
+   * ones go through the offline rules (capped, reduced efficiency, buffs
+   * lapse, bosses abandoned), so leaving the tab open can't out-earn
+   * closing it. Returns the offline report for long gaps, else null.
+   */
+  elapse(seconds: number): OfflineReport | null {
+    if (!(seconds > 0)) return null;
+    if (seconds <= Game.MAX_EXACT_GAP) {
+      this.update(seconds);
+      return null;
+    }
+    return this.applyOffline(seconds);
+  }
+
+  /** Give up an in-progress boss fight (e.g. the tab was hidden). */
+  abandonBoss(): boolean {
+    const s = this.state;
+    if (!s.boss) return false;
+    const { era, final } = s.boss;
+    s.boss = null;
+    s.bossRetryAt = s.time + 3;
+    this.gateAnnounced = -1;
+    this.emit({ type: 'bossFail', era, final });
+    return true;
+  }
+
   // ── Offline ──
 
   /** Credit time away (tab closed). Temporary effects lapse; production is

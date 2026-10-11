@@ -2,7 +2,7 @@ import './styles/main.css';
 import { Game } from './sim/game';
 import { elapsedSince, exportSave, importSave, loadGame, saveGame, wipeSave, type KVStore } from './sim/save';
 import { loadSettings, saveSettings, type Settings } from './app/settings';
-import { setNotation, fmt } from './core/format';
+import { setNotation, fmt, fmtTime } from './core/format';
 import { GameScene } from './render/scene';
 import { FallbackScene } from './render/fallback';
 import { AudioEngine } from './audio/engine';
@@ -188,8 +188,14 @@ stageEl.addEventListener('pointerdown', (e) => {
 });
 stageEl.addEventListener('pointermove', (e) => view.pointerMove(e.clientX, e.clientY), { passive: true });
 stageEl.addEventListener('contextmenu', (e) => e.preventDefault());
+// Screen readers may "click" the poke target directly; real Space/Enter
+// presses are already handled by the global key handler (which prevents
+// the default button activation), so this never double-pokes.
 pokeButton.addEventListener('click', (e) => {
-  if (e.detail === 0) game.poke({ source: 'key' });
+  if (e.detail === 0 && started) {
+    syncSim();
+    game.poke({ source: 'key' });
+  }
 });
 
 const typingTarget = (t: EventTarget | null): boolean =>
@@ -202,7 +208,8 @@ document.addEventListener('keydown', (e) => {
   if ((e.key === ' ' || e.key === 'Enter') && !onButton) {
     e.preventDefault();
     syncSim();
-    if (!e.repeat || e.key === ' ') game.poke({ source: 'key' });
+    // No auto-repeat: holding a key must not become a free autoclicker.
+    if (!e.repeat) game.poke({ source: 'key' });
     return;
   }
   const ability = ABILITIES.find((a) => a.key === e.key);
@@ -221,6 +228,8 @@ document.addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('keyup', (e) => {
+  // Buttons activate on Space keyup; the poke target was already poked on keydown.
+  if (e.target === pokeButton && (e.key === ' ' || e.key === 'Enter')) e.preventDefault();
   const ability = ABILITIES.find((a) => a.key === e.key);
   if (ability) abilityUp(ability.id);
 });
@@ -333,9 +342,13 @@ function syncSim(): void {
 function advanceSim(seconds: number): void {
   if (!started || !hasLock) return;
   if (seconds > 1) {
-    // Long gap (background tab): one exact step, events coalesced.
-    game.update(seconds);
+    // Throttled background tab or a long hitch: the Game decides whether to
+    // simulate exactly or pay it out under the offline rules.
+    const report = game.elapse(seconds);
     acc = 0;
+    if (report && report.gained > 0) {
+      toasts.push('While this tab was asleep', `Your minions earned ${fmt(report.gained)} gasps (${fmtTime(report.credited)} at ${Math.round(report.efficiency * 100)}%).`, 'gold');
+    }
   } else {
     acc += seconds;
     let n = 0;
@@ -378,6 +391,10 @@ setInterval(() => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
+    // A boss fight can't be won (or lost) while nobody is watching.
+    if (started && game.abandonBoss()) {
+      toasts.push('Fight abandoned', 'You left mid-fight, so the boss regained its composure. Challenge it again when ready.', 'warn');
+    }
     persist();
     audio.suspend();
   } else {

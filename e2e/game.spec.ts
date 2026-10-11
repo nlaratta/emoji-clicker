@@ -84,6 +84,15 @@ test('keyboard Space pokes for accessibility', async ({ page }) => {
   expect((await state(page)).stats.clicks).toBe(6);
 });
 
+test('the focusable poke target pokes exactly once per key press', async ({ page }) => {
+  await boot(page);
+  await start(page);
+  await page.locator('.poke-target').focus();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Enter');
+  expect((await state(page)).stats.clicks).toBe(2);
+});
+
 test('buys a weapon and a minion through the shop', async ({ page }) => {
   await boot(page);
   await start(page);
