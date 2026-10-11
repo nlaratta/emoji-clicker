@@ -17,6 +17,7 @@ export function spaceOutpost(kit: EraKit, ctx: PropContext): EraScript {
   const pathA = kit.anchor('path_rover_0')?.pos ?? new THREE.Vector3(-4, 0, -14.3);
   const pathB = kit.anchor('path_rover_1')?.pos ?? new THREE.Vector3(5.5, 0, -14.8);
   let roverU = 0.3;
+  if (rover) rover.rotation.y = Math.PI;
   const beacons = kit.anchorsOf('fx_beacon');
   let blink = 0;
   const red = new THREE.Color(1, 0.25, 0.25);
@@ -62,8 +63,10 @@ export function spaceOutpost(kit: EraKit, ctx: PropContext): EraScript {
         const k = THREE.MathUtils.smootherstep(leg, 0, 1);
         rover.position.lerpVectors(pathA, pathB, k);
         rover.position.y = kit.height(rover.position.x, rover.position.z);
-        const dir = roverU < 1 ? 1 : -1;
-        rover.rotation.y = dir > 0 ? Math.PI : 0;
+        // Turn round in place at each end (it's in view; no snapping).
+        const want = roverU < 1 ? Math.PI : 0;
+        const y = rover.rotation.y;
+        rover.rotation.y = y + Math.atan2(Math.sin(want - y), Math.cos(want - y)) * Math.min(1, dt * 2.5);
         rover.rotation.z = Math.sin(t * 3.1) * 0.015;
       }
       blink -= dt;
