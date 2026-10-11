@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MatClass, splitByClass } from '../matclass';
 
 /**
  * Jointed characters from minions.glb. Each part carries its game-space
@@ -38,8 +39,7 @@ function floats(attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, 
 }
 
 /** Bake a mesh into pivot-relative space as clean float geometry. */
-function bakePart(mesh: THREE.Mesh, pivot: THREE.Vector3): THREE.BufferGeometry {
-  const src = mesh.geometry;
+function bakePart(mesh: THREE.Mesh, pivot: THREE.Vector3, src: THREE.BufferGeometry = mesh.geometry): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(floats(src.getAttribute('position'), 3), 3));
   if (src.getAttribute('normal')) g.setAttribute('normal', new THREE.BufferAttribute(floats(src.getAttribute('normal'), 3), 3));
@@ -52,18 +52,27 @@ function bakePart(mesh: THREE.Mesh, pivot: THREE.Vector3): THREE.BufferGeometry 
   return g;
 }
 
-const materials = new Map<string, THREE.Material>();
+const materials = new Map<MatClass, THREE.Material>();
 
-/** Shared character materials: matte vertex colour, and gloss for eyes. */
-export function charMaterial(name: string): THREE.Material {
-  let m = materials.get(name);
+/** Shared character materials by class: matte, gloss (eyes), metal (armour), glow. */
+export function charMaterial(cls: MatClass): THREE.Material {
+  let m = materials.get(cls);
   if (!m) {
-    m = name === 'Gloss'
+    m = cls === MatClass.Gloss
       ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.12, metalness: 0, envMapIntensity: 1.6 })
-      : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0, envMapIntensity: 0.7 });
-    materials.set(name, m);
+      : cls === MatClass.Metal
+        ? new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32, metalness: 0.65, envMapIntensity: 1.3 })
+        : cls === MatClass.Glow
+          ? new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.2, 2.2, 2.2) })
+          : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.78, metalness: 0, envMapIntensity: 0.7 });
+    materials.set(cls, m);
   }
   return m;
+}
+
+/** A mesh's primitives, split back out by material class and baked to pivot space. */
+function partMeshes(m: THREE.Mesh, pivot: THREE.Vector3): PartMesh[] {
+  return [...splitByClass(m.geometry)].map(([cls, g]) => ({ geometry: bakePart(m, pivot, g), material: charMaterial(cls) }));
 }
 
 /** A part's own meshes: itself and any role-less descendants (gltfpack wrappers,
@@ -126,7 +135,7 @@ export function rigsFromGltf(gltf: GLTF): Map<string, Rig> {
         name: short,
         parent: parentName ? ordered.findIndex((o) => o.name === parentName) : -1,
         offset: pivot.clone().sub(parentPivot),
-        meshes: meshesOf(n).map((m) => ({ geometry: bakePart(m, pivot), material: charMaterial((m.material as THREE.Material).name) })),
+        meshes: meshesOf(n).flatMap((m) => partMeshes(m, pivot)),
       };
     });
     rigs.set(id, { id, parts, index });
@@ -141,7 +150,7 @@ export function gearFromGltf(gltf: GLTF): Map<string, PartMesh[]> {
   gltf.scene.traverse((o) => {
     if (o.userData.role !== 'gear') return;
     const pivot = o.getWorldPosition(new THREE.Vector3());
-    out.set(o.name, meshesOf(o).map((m) => ({ geometry: bakePart(m, pivot), material: charMaterial((m.material as THREE.Material).name) })));
+    out.set(o.name, meshesOf(o).flatMap((m) => partMeshes(m, pivot)));
   });
   return out;
 }

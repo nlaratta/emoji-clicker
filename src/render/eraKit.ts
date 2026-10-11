@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { makeReveal, patchWorldMaterial, worldDepthMaterial, type RevealUniforms } from './worldMaterial';
+import { MatClass, splitByClass } from './matclass';
 
 /**
  * One era's diorama, assembled from its glTF kit (art/blender/eraN.py):
@@ -50,8 +51,7 @@ function floats(attr: THREE.BufferAttribute | THREE.InterleavedBufferAttribute, 
  * world material expects. With `rise` it's baked into world space for merging;
  * without, it stays local for instancing (rise then comes per instance).
  */
-function bakeGeometry(mesh: THREE.Mesh, sway: number, rise: [number, number] | null): THREE.BufferGeometry {
-  const src = mesh.geometry;
+function bakeGeometry(mesh: THREE.Mesh, sway: number, rise: [number, number] | null, src: THREE.BufferGeometry = mesh.geometry): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   const pos = floats(src.getAttribute('position'), 3);
   const nrm = src.getAttribute('normal') ? floats(src.getAttribute('normal'), 3) : null;
@@ -176,8 +176,15 @@ export class EraKit {
     };
 
     // Static props: repeated templates become instanced meshes, one-offs are merged.
+    // Each mesh is first split back into its material classes (see matclass.ts).
     interface Placed { mesh: THREE.Mesh; sway: number; rise: [number, number] }
-    const byGeo = new Map<THREE.BufferGeometry, Placed[]>();
+    const byGeo = new Map<THREE.BufferGeometry, { cls: MatClass; list: Placed[] }>();
+    const splits = new Map<THREE.BufferGeometry, Map<MatClass, THREE.BufferGeometry>>();
+    const classesOf = (g: THREE.BufferGeometry): Map<MatClass, THREE.BufferGeometry> => {
+      let m = splits.get(g);
+      if (!m) splits.set(g, (m = splitByClass(g)));
+      return m;
+    };
     let grassmap: THREE.Mesh | null = null;
     const walkable: THREE.Mesh[] = [];
     root.traverse((o) => {
@@ -199,11 +206,14 @@ export class EraKit {
       const bb = mesh.geometry.boundingBox!.clone().applyMatrix4(mesh.matrixWorld);
       const placed: Placed = { mesh, sway: Number(ud.sway ?? 0), rise: [Math.hypot(wp.x, wp.z), bb.max.y - bb.min.y + 0.4] };
       if (ud.walk) walkable.push(mesh);
-      if ((mesh.material as THREE.Material).name === 'Glow') glow.push(bakeGeometry(mesh, 0, placed.rise));
-      else {
-        const list = byGeo.get(mesh.geometry) ?? [];
-        list.push(placed);
-        byGeo.set(mesh.geometry, list);
+      for (const [cls, g] of classesOf(mesh.geometry)) {
+        if (cls === MatClass.Glow) {
+          glow.push(bakeGeometry(mesh, 0, placed.rise, g));
+          continue;
+        }
+        const entry = byGeo.get(g) ?? { cls, list: [] };
+        entry.list.push(placed);
+        byGeo.set(g, entry);
       }
       if (typeof ud.col === 'number' && ud.col > 0 && node === mesh) {
         this.colliders.push({ x: wp.x, z: wp.z, r: ud.col * node.getWorldScale(new THREE.Vector3()).x });
@@ -221,16 +231,19 @@ export class EraKit {
 
     const rev = this.reveal;
     const propMat = patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0, envMapIntensity: 0.6 }), { sway: true, rise: true, reveal: rev });
+    const metalMat = patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.6, envMapIntensity: 1.2 }), { sway: true, rise: true, reveal: rev });
     const propDepth = worldDepthMaterial({ sway: true, rise: true, reveal: rev });
-    this.materials.push(propMat, propDepth);
-    for (const list of byGeo.values()) {
+    this.materials.push(propMat, metalMat, propDepth);
+    const metal: THREE.BufferGeometry[] = [];
+    for (const [src, { cls, list }] of byGeo) {
+      const shiny = cls === MatClass.Metal || cls === MatClass.Gloss;
       if (list.length === 1) {
-        opaque.push(bakeGeometry(list[0].mesh, list[0].sway, list[0].rise));
+        (shiny ? metal : opaque).push(bakeGeometry(list[0].mesh, list[0].sway, list[0].rise, src));
         continue;
       }
-      const geo = bakeGeometry(list[0].mesh, list[0].sway, null);
+      const geo = bakeGeometry(list[0].mesh, list[0].sway, null, src);
       const rise = new Float32Array(list.length * 2);
-      const inst = new THREE.InstancedMesh(geo, propMat, list.length);
+      const inst = new THREE.InstancedMesh(geo, shiny ? metalMat : propMat, list.length);
       list.forEach((p, i) => {
         inst.setMatrixAt(i, p.mesh.matrixWorld);
         rise[i * 2] = p.rise[0];
@@ -255,6 +268,16 @@ export class EraKit {
       mesh.name = 'props';
       this.group.add(mesh);
     }
+    if (metal.length) {
+      const geo = mergeGeometries(metal.map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
+      const mesh = new THREE.Mesh(geo, metalMat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.customDepthMaterial = propDepth;
+      mesh.frustumCulled = false;
+      mesh.name = 'props-metal';
+      this.group.add(mesh);
+    }
     if (glow.length) {
       const geo = mergeGeometries(glow.map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
       const mat = patchWorldMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.2, 2.2, 2.2) }), { sway: false, rise: true, reveal: rev });
@@ -268,19 +291,29 @@ export class EraKit {
     for (const a of animRoots) {
       a.updateMatrixWorld(true);
       this.anim.set(a.name, a);
+      const meshes: THREE.Mesh[] = [];
       a.traverse((o) => {
-        const m = o as THREE.Mesh;
-        if (!m.isMesh) return;
-        const src = m.material as THREE.Material;
-        const mat = src.name === 'Glow'
-          ? patchWorldMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.2, 2.2, 2.2) }), { reveal: rev })
-          : patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), { reveal: rev });
-        m.material = mat;
-        m.castShadow = true;
-        m.receiveShadow = true;
-        m.customDepthMaterial = worldDepthMaterial({ reveal: rev });
-        this.materials.push(mat);
+        if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh);
       });
+      const matFor = (cls: MatClass): THREE.Material => {
+        const mat = cls === MatClass.Glow
+          ? patchWorldMaterial(new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, color: new THREE.Color(2.2, 2.2, 2.2) }), { reveal: rev })
+          : patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: cls === MatClass.Matte ? 0.85 : 0.35, metalness: cls === MatClass.Metal ? 0.6 : 0 }), { reveal: rev });
+        this.materials.push(mat);
+        return mat;
+      };
+      for (const m of meshes) {
+        const parts = [...splitByClass(m.geometry)];
+        parts.forEach(([cls, g], i) => {
+          const target = i === 0 ? m : new THREE.Mesh();
+          target.geometry = g;
+          target.material = matFor(cls);
+          target.castShadow = cls !== MatClass.Glow;
+          target.receiveShadow = true;
+          target.customDepthMaterial = worldDepthMaterial({ reveal: rev });
+          if (target !== m) m.add(target);
+        });
+      }
       this.group.add(a);
     }
     for (const w of walkable) {

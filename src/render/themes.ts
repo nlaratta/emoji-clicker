@@ -61,27 +61,27 @@ export const THEMES: Theme[] = [
     hemiSky: 0xffcfae, hemiGround: 0x5a3c4c, hemiInt: 0.5, keyColor: 0xffd3a2, keyInt: 2.6, rimColor: 0xff8a4a, rimInt: 1.3,
     platform: 0x7a6248, platformRim: 0xff9b4a, bloom: 0.55, fogNear: 18, fogFar: 230, accent: '#ff9b4a',
   },
-  // II — Medieval overcast
+  // II — A crisp spring morning: high warm sun, blue sky, cool shadows.
   {
-    skyTop: 0x3c5a8a, skyHorizon: 0xc8d2dc, skyBottom: 0x4a5560,
-    sunDir: [0.4, 0.45, -0.8], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xfff2d0, sunSize: 0.07, sunStripes: 0,
+    skyTop: 0x3a74c6, skyHorizon: 0xcfe3f2, skyBottom: 0x6f8fae,
+    sunDir: [0.42, 0.55, -0.72], keyDir: [-0.5, 0.74, 0.46], sunColor: 0xfff4d8, sunSize: 0.07, sunStripes: 0,
     stars: 0, nebula: 0, nebA: 0x000000, nebB: 0x000000,
-    clouds: 0.8, cloudColor: 0xf2f2ee, ridge: 0.6, ridgeColor: 0x4c5a6a, skyline: 0, warp: 0,
+    clouds: 0.8, cloudColor: 0xffffff, ridge: 0.25, ridgeColor: 0x7a96b0, skyline: 0, warp: 0,
     groundA4: [0.15, 0.85, 0, 0], groundB4: [0, 0, 0, 0], groundA: 0x6c6a64, groundB: 0x4a4844, gridColor: 0xffffff,
-    fog: 0x9aa8b6,
-    hemiSky: 0xdfe8f2, hemiGround: 0x4a4a52, hemiInt: 0.72, keyColor: 0xfff6e6, keyInt: 1.6, rimColor: 0x9cc4ff, rimInt: 1.4,
-    platform: 0x8a8680, platformRim: 0x7fb2ff, bloom: 0.6, fogNear: 60, fogFar: 260, accent: '#7fb2ff',
+    fog: 0xc9dcea,
+    hemiSky: 0xd2e4ff, hemiGround: 0x5a6a3e, hemiInt: 0.6, keyColor: 0xfff2dc, keyInt: 2.5, rimColor: 0xbcd8ff, rimInt: 0.9,
+    platform: 0x8a8680, platformRim: 0x7fb2ff, bloom: 0.38, fogNear: 30, fogFar: 230, accent: '#7fb2ff',
   },
-  // III — Industrial smog
+  // III — Smoggy amber afternoon: a low orange sun through soot, sepia haze.
   {
-    skyTop: 0x4a3a2a, skyHorizon: 0xd09050, skyBottom: 0x3a2a20,
-    sunDir: [0.2, 0.25, -0.95], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xff9a40, sunSize: 0.09, sunStripes: 0,
+    skyTop: 0x5a4636, skyHorizon: 0xe4a564, skyBottom: 0x4a382a,
+    sunDir: [0.25, 0.2, -0.95], keyDir: [-0.55, 0.55, 0.6], sunColor: 0xffb060, sunSize: 0.1, sunStripes: 0,
     stars: 0, nebula: 0, nebA: 0x000000, nebB: 0x000000,
-    clouds: 0.9, cloudColor: 0x8a6a50, ridge: 0.2, ridgeColor: 0x3a2a22, skyline: 0.35, warp: 0,
+    clouds: 0.9, cloudColor: 0x9a7a5a, ridge: 0.12, ridgeColor: 0x5a4234, skyline: 0.35, warp: 0,
     groundA4: [0, 0, 1, 0], groundB4: [0, 0, 0, 0], groundA: 0x5a5048, groundB: 0x3a342e, gridColor: 0xffaa55,
-    fog: 0x6a5040,
-    hemiSky: 0xffd8a0, hemiGround: 0x3a2a20, hemiInt: 0.68, keyColor: 0xffd090, keyInt: 1.6, rimColor: 0xffaa40, rimInt: 1.7,
-    platform: 0x6a5a40, platformRim: 0xffb347, bloom: 0.75, fogNear: 60, fogFar: 260, accent: '#ffb347',
+    fog: 0xb88a62,
+    hemiSky: 0xffd8a8, hemiGround: 0x3a2a20, hemiInt: 0.56, keyColor: 0xffc890, keyInt: 2.35, rimColor: 0xff9a50, rimInt: 1.25,
+    platform: 0x6a5a40, platformRim: 0xffb347, bloom: 0.5, fogNear: 14, fogFar: 125, accent: '#ffb347',
   },
   // IV — Modern night city
   {

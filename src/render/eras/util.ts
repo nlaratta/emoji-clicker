@@ -31,3 +31,59 @@ export function flame(ctx: PropContext, p: THREE.Vector3, scale = 1): void {
     r: 3.2, g: 1.1 + Math.random() * 0.7, b: 0.22, drag: 1.2, gravity: -1.1, shape: 0,
   });
 }
+
+export interface Cloth {
+  /** Ripple the cloth: `amp` as a share of its width, `freq` in rad/s. */
+  wave(t: number, amp: number, freq: number): void;
+}
+
+/**
+ * A hanging cloth (banner, flag) from a kit `anim` node, rippled on the CPU.
+ * Works in the mesh's own (possibly quantized) units: the top edge stays put
+ * and the swing grows toward the free end.
+ */
+export function clothOf(root: THREE.Object3D): Cloth {
+  let mesh: THREE.Mesh | null = null;
+  root.traverse((o) => {
+    if (!mesh && (o as THREE.Mesh).isMesh) mesh = o as THREE.Mesh;
+  });
+  const m = mesh as THREE.Mesh | null;
+  if (!m) return { wave() {} };
+  const src = m.geometry.getAttribute('position');
+  const n = src.count;
+  const base = new Float32Array(n * 3);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const x = src.getX(i);
+    const y = src.getY(i);
+    base[i * 3] = x;
+    base[i * 3 + 1] = y;
+    base[i * 3 + 2] = src.getZ(i);
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+  const attr = new THREE.BufferAttribute(base.slice(), 3);
+  attr.setUsage(THREE.DynamicDrawUsage);
+  m.geometry.setAttribute('position', attr);
+  m.frustumCulled = false;
+  const w = Math.max(1e-4, maxX - minX);
+  const h = Math.max(1e-4, maxY - minY);
+  const arr = attr.array as Float32Array;
+  return {
+    wave(t, amp, freq) {
+      for (let i = 0; i < n; i++) {
+        const u = (base[i * 3] - minX) / w;
+        const d = (maxY - base[i * 3 + 1]) / h;
+        const s = Math.sin(u * 5 + d * 4 - t * freq) * 0.7 + Math.sin(u * 2.3 - t * freq * 0.6 + 1.3) * 0.3;
+        arr[i * 3 + 2] = base[i * 3 + 2] + s * amp * w * d;
+        arr[i * 3] = base[i * 3] + Math.sin(d * 3 - t * freq * 0.8) * amp * 0.25 * w * d;
+      }
+      attr.needsUpdate = true;
+    },
+  };
+}

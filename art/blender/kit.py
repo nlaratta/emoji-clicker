@@ -18,6 +18,7 @@ from __future__ import annotations
 import math
 import os
 import random
+import re
 import sys
 
 import bmesh
@@ -90,7 +91,14 @@ def vtx_material(name: str = "Vtx", rough: float = 0.82, metal: float = 0.0, emi
     return mat
 
 
+def safe_name(name: str) -> str:
+    """Blender reads a trailing '.123' as a duplicate counter (and crashes on
+    long ones), so generated names keep to letters, digits, '_' and '-'."""
+    return re.sub(r"[^A-Za-z0-9_\-]", "_", name)
+
+
 def obj_from_bm(bm: bmesh.types.BMesh, name: str, mat: bpy.types.Material | None = None, smooth: bool = True) -> bpy.types.Object:
+    name = safe_name(name)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
@@ -141,6 +149,7 @@ def apply_transform(ob: bpy.types.Object, loc=False, rot=True, scale=True) -> No
 
 
 def join(objs, name: str) -> bpy.types.Object:
+    name = safe_name(name)
     objs = [o for o in objs if o]
     select_only(objs)
     bpy.ops.object.join()
@@ -367,8 +376,37 @@ def radial_normals(ob, center: Vector, blend: float = 0.75, squash=Vector((1, 1,
 # ───────────────────────────────────────────────────────────── export & preview
 
 
+MAT_CLASS = {"Vtx": 0, "Gloss": 1, "Metal": 2, "Glow": 3}
+
+
+def encode_material_classes(objs) -> None:
+    """Blender's glTF exporter loses vertex colours on every primitive but the
+    first, so each mesh is collapsed to the single "Vtx" material and the
+    face's real material class goes in a UV channel (u = class / 4 + 1/8).
+    The runtime splits geometry back out by class."""
+    vtx = vtx_material()
+    seen = set()
+    for ob in objs:
+        if ob.type != "MESH" or ob.data.name in seen:
+            continue
+        seen.add(ob.data.name)
+        me = ob.data
+        names = [m.name if m else "Vtx" for m in me.materials]
+        while me.uv_layers:
+            me.uv_layers.remove(me.uv_layers[0])
+        uv = me.uv_layers.new(name="MatClass")
+        for poly in me.polygons:
+            cls = MAT_CLASS.get(names[poly.material_index] if poly.material_index < len(names) else "Vtx", 0)
+            u = cls / 4 + 0.125
+            for li in poly.loop_indices:
+                uv.data[li].uv = (u, 0.5)
+        me.materials.clear()
+        me.materials.append(vtx)
+
+
 def export_glb(path: str, objs=None, compress=False) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    encode_material_classes(list(objs) if objs is not None else list(bpy.context.scene.objects))
     if objs is not None:
         select_only(list(objs))
     kw = dict(
@@ -379,7 +417,7 @@ def export_glb(path: str, objs=None, compress=False) -> None:
         export_all_vertex_colors=False,
         export_extras=True,
         export_attributes=True,
-        export_texcoords=False,
+        export_texcoords=True,
         export_normals=True,
         export_materials="EXPORT",
         export_yup=True,
@@ -460,11 +498,13 @@ def sweep(name: str, points, radii, around: int = 8, cap: bool = True, mat=None,
             off = nrm * math.cos(a) * radii[i] + bin_ * math.sin(a) * radii[i]
             ring.append(bm.verts.new(p + off))
         rings.append(ring)
-    closed = (pts[0] - pts[-1]).length < 1e-5
-    n = len(rings) - (1 if closed else 0)
-    for i in range(n):
-        a_ring = rings[i]
-        b_ring = rings[(i + 1) % len(rings)] if not closed else rings[(i + 1) % (len(rings) - 1)]
+    closed = len(pts) > 2 and (pts[0] - pts[-1]).length < 1e-5
+    if closed:
+        for v in rings.pop():
+            bm.verts.remove(v)
+    m = len(rings)
+    for i in range(m if closed else m - 1):
+        a_ring, b_ring = rings[i], rings[(i + 1) % m]
         for k in range(around):
             j = (k + 1) % around
             bm.faces.new((a_ring[k], a_ring[j], b_ring[j], b_ring[k]))

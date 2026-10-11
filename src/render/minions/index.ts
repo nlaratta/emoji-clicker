@@ -5,15 +5,40 @@ import type { EraKit } from '../eraKit';
 import { loadModel } from '../assets';
 import { SpriteMinions, type ImpactFn } from './legacy';
 import { Crowd, GearPool, gearFromGltf, rigsFromGltf, type Rig } from './rig';
-import { Creature, type Circle, type Env, type Kind, type Spot } from './creatures';
+import { Creature, type Circle, type Env, type Spot } from './creatures';
+import { Factory, Knight, Trebuchet, type Unit } from './machines';
+import layout from './layout.json';
 
-/** How many of each creature are drawn (more owned = more workers, up to this). */
-const MAX: Record<Kind, number> = { monkey: 9, gorilla: 6 };
-/** Base attacks per second before the log-owned boost (matches the sprite minions). */
-const RATE: Record<Kind, number> = { monkey: 1.2, gorilla: 0.8 };
-const COLOR: Record<Kind, THREE.Color> = { monkey: new THREE.Color(0xffe0a0), gorilla: new THREE.Color(0xc8b8a8) };
 const STAR = new THREE.Vector3(0, 1.25, 0);
-const KINDS: Kind[] = ['monkey', 'gorilla'];
+const slot = (p: number[]): THREE.Vector3 => new THREE.Vector3(p[0], 0, p[1]);
+
+/**
+ * Every 3D minion kind: how many are drawn, how fast they attack (base rate
+ * before the log-owned boost, matching the sprite minions), how they arrive
+ * and how their attacks land.
+ */
+interface KindDef {
+  max: number;
+  rate: number;
+  color: THREE.Color;
+  make(rig: Rig, index: number): Unit;
+  /** 'touch': hits where it stands; 'throw': a rock from the hands; 'sling': a boulder from the muzzle. */
+  attack: 'touch' | 'throw' | 'sling';
+  /** Projectile gear for slung attacks. */
+  ammo?: 'rock' | 'glove';
+  strength: number;
+  /** Contact-shadow radius. */
+  shadow: number;
+}
+
+const KINDS: Record<string, KindDef> = {
+  monkey: { max: 9, rate: 1.2, color: new THREE.Color(0xffe0a0), make: (r) => new Creature('monkey', r), attack: 'touch', strength: 0.25, shadow: 0.42 },
+  gorilla: { max: 5, rate: 0.8, color: new THREE.Color(0xc8b8a8), make: (r) => new Creature('gorilla', r), attack: 'throw', strength: 0.38, shadow: 0.8 },
+  trebuchet: { max: 3, rate: 0.35, color: new THREE.Color(0xffb070), make: (r, i) => new Trebuchet(r, slot(layout.trebuchet[i])), attack: 'sling', strength: 0.6, shadow: 1.8 },
+  knight: { max: 4, rate: 0.5, color: new THREE.Color(0xd8e4ff), make: (r, i) => new Knight(r, slot(layout.knight[i])), attack: 'touch', strength: 0.45, shadow: 1.1 },
+  steam: { max: 6, rate: 0.8, color: new THREE.Color(0xffffff), make: (r) => new Creature('steam', r), attack: 'touch', strength: 0.3, shadow: 0.5 },
+  factory: { max: 2, rate: 0.6, color: new THREE.Color(0xffd0a0), make: (r, i) => new Factory(r, slot(layout.factory[i])), attack: 'sling', ammo: 'glove', strength: 0.5, shadow: 0 },
+};
 
 export interface MinionWorld {
   heightAt(x: number, z: number): number;
@@ -21,11 +46,13 @@ export interface MinionWorld {
 }
 
 interface Flight {
+  gear: 'rock' | 'glove';
   from: THREE.Vector3;
   to: THREE.Vector3;
   t: number;
   dur: number;
   arc: number;
+  size: number;
   spin: THREE.Vector3;
   hit: (() => void) | null;
   /** After impact: ballistic tumble off the star. */
@@ -33,15 +60,28 @@ interface Flight {
   after: number;
 }
 
+interface Pack {
+  def: KindDef;
+  crowd: Crowd;
+  units: Unit[];
+  acc: number;
+  queue: number[];
+}
+
 const tmpM = new THREE.Matrix4();
 const tmpV = new THREE.Vector3();
+const tmpV2 = new THREE.Vector3();
 const tmpQ = new THREE.Quaternion();
 const tmpE = new THREE.Euler();
+const tmpS = new THREE.Vector3();
+const shadowCol = new THREE.Color();
 const ONE = new THREE.Vector3(1, 1, 1);
+const posOf = (u: Unit): THREE.Vector3 => (u as unknown as { pos: THREE.Vector3 }).pos;
+const scaleOf = (u: Unit): number => (u as unknown as { scale: number }).scale;
 
 /**
- * Idle production made visible. Creature minions are 3D workers with
- * routines; types still awaiting a model fall back to emoji billboards.
+ * Idle production made visible. Minions are 3D workers and machines with
+ * routines; kinds still awaiting a model fall back to illustrated billboards.
  */
 export class Minions {
   readonly group = new THREE.Group();
@@ -50,12 +90,10 @@ export class Minions {
   private onImpact: ImpactFn;
   private world: MinionWorld;
   private rigs: Map<string, Rig> | null = null;
-  private crowds = new Map<Kind, Crowd>();
-  private creatures: Record<Kind, Creature[]> = { monkey: [], gorilla: [] };
+  private packs = new Map<string, Pack>();
   private owned: Record<string, number> = {};
-  private acc: Record<Kind, number> = { monkey: Math.random(), gorilla: Math.random() };
-  private queue: Record<Kind, number[]> = { monkey: [], gorilla: [] };
   private rocks: GearPool | null = null;
+  private gloves: GearPool | null = null;
   private bananas: GearPool | null = null;
   private flights: Flight[] = [];
   private shadows: THREE.InstancedMesh;
@@ -75,7 +113,7 @@ export class Minions {
     this.onImpact = onImpact;
     this.world = world;
     this.group.add(this.sprites.batch.mesh);
-    this.shadows = blobShadows(64);
+    this.shadows = blobShadows(96);
     this.group.add(this.shadows);
     this.env = {
       height: (x, z) => this.world.heightAt(x, z),
@@ -85,32 +123,38 @@ export class Minions {
     };
     loadModel('minions')
       .then((gltf) => {
-        this.rigs = rigsFromGltf(gltf);
+        const rigs = rigsFromGltf(gltf);
         const gear = gearFromGltf(gltf);
-        for (const k of KINDS) {
-          const rig = this.rigs.get(k);
+        for (const [id, def] of Object.entries(KINDS)) {
+          const rig = rigs.get(id);
           if (!rig) continue;
-          const crowd = new Crowd(rig, MAX[k]);
-          this.crowds.set(k, crowd);
+          const crowd = new Crowd(rig, def.max);
+          this.packs.set(id, { def, crowd, units: [], acc: Math.random(), queue: [] });
           this.group.add(crowd.group);
-          this.sprites.skip.add(k);
+          this.sprites.skip.add(id);
         }
         const rock = gear.get('proj_rock');
         if (rock) {
-          this.rocks = new GearPool(rock, 40);
+          this.rocks = new GearPool(rock, 48);
           this.group.add(this.rocks.group);
+        }
+        const glove = gear.get('proj_glove');
+        if (glove) {
+          this.gloves = new GearPool(glove, 16);
+          this.group.add(this.gloves.group);
         }
         const banana = gear.get('proj_banana');
         if (banana) {
-          this.bananas = new GearPool(banana, MAX.monkey);
+          this.bananas = new GearPool(banana, KINDS.monkey.max);
           this.group.add(this.bananas.group);
         }
+        this.rigs = rigs;
         this.sync(this.owned, true);
       })
       .catch((err) => console.warn('minion models failed to load', err));
   }
 
-  /** The emoji-billboard batch (kept for types without models). */
+  /** Kept for callers that add the sprite batch directly. */
   get batch(): { mesh: THREE.Object3D } {
     return { mesh: this.group };
   }
@@ -120,36 +164,37 @@ export class Minions {
     this.sprites.sync(producers);
     if (!this.rigs) return;
     this.refreshSpots();
-    for (const k of KINDS) {
-      const rig = this.rigs.get(k);
-      if (!rig) continue;
-      const list = this.creatures[k];
-      const want = Math.min(MAX[k], producers[k] ?? 0);
-      const bulk = want - list.length > 1;
-      while (list.length < want) list.push(this.spawn(k, rig, settle || bulk || this.time < 2));
-      while (list.length > want) list.pop()!.release();
+    for (const [id, pack] of this.packs) {
+      const rig = this.rigs.get(id)!;
+      const want = Math.min(pack.def.max, producers[id] ?? 0);
+      const bulk = want - pack.units.length > 1;
+      while (pack.units.length < want) pack.units.push(this.spawn(pack, rig, settle || bulk || this.time < 2));
+      while (pack.units.length > want) pack.units.pop()!.release();
     }
   }
 
-  private spawn(kind: Kind, rig: Rig, settled: boolean): Creature {
-    const c = new Creature(kind, rig);
-    c.bindRig(rig);
-    if (settled) {
-      // Already part of the scene: start somewhere sensible, fully grown.
-      const a = Math.PI + (Math.random() - 0.5) * 2.6;
-      const r = 3 + Math.random() * 2.5;
-      c.pos.set(Math.sin(a) * r, 0, Math.cos(a) * r);
-      c.spawn = 1;
-    } else {
-      // New hire: arrives from the edge of the clearing.
-      const a = Math.PI + (Math.random() - 0.5) * 2.2;
-      c.pos.set(Math.sin(a) * 9, 0, Math.cos(a) * 9);
-      c.spawn = 0;
-      this.particles.sparks(new THREE.Vector3(c.pos.x, this.world.heightAt(c.pos.x, c.pos.z) + 0.3, c.pos.z), 10, COLOR[kind], 2.5);
+  private spawn(pack: Pack, rig: Rig, settled: boolean): Unit {
+    const u = pack.def.make(rig, pack.units.length);
+    if (u instanceof Creature) {
+      u.bindRig(rig);
+      if (settled) {
+        const a = Math.PI + (Math.random() - 0.5) * 2.6;
+        const r = 3 + Math.random() * 2.5;
+        u.pos.set(Math.sin(a) * r, 0, Math.cos(a) * r);
+      } else {
+        // New hire: walks in from the edge of the clearing.
+        const a = Math.PI + (Math.random() - 0.5) * 2.2;
+        u.pos.set(Math.sin(a) * 9, 0, Math.cos(a) * 9);
+      }
+      u.pos.y = this.world.heightAt(u.pos.x, u.pos.z);
+      u.yaw = Math.atan2(-u.pos.x, -u.pos.z);
     }
-    c.pos.y = this.world.heightAt(c.pos.x, c.pos.z);
-    c.yaw = Math.atan2(-c.pos.x, -c.pos.z);
-    return c;
+    u.spawn = settled ? 1 : 0;
+    if (!settled) {
+      const p = posOf(u);
+      this.particles.sparks(new THREE.Vector3(p.x, this.world.heightAt(p.x, p.z) + 0.4, p.z), 14, pack.def.color, 3);
+    }
+    return u;
   }
 
   /** Rebuild work/rest spots from the current era's kit (anchors) plus defaults. */
@@ -157,7 +202,7 @@ export class Minions {
     const kit = this.world.kit();
     if (kit === this.spotKit) return;
     this.spotKit = kit;
-    for (const list of Object.values(this.creatures)) for (const c of list) c.release();
+    for (const pack of this.packs.values()) for (const u of pack.units) u.release();
     const spots = new Map<string, Spot[]>();
     const add = (kind: string, x: number, z: number, yaw: number): void => {
       const list = spots.get(kind) ?? [];
@@ -172,10 +217,15 @@ export class Minions {
         add('poke', Math.sin(a) * 1.66, Math.cos(a) * 1.66, a + Math.PI);
       }
     }
-    // Rock pile (kit anchor, else a default spot on the right).
-    const pile = kit?.anchor('st_rockpile')?.pos ?? new THREE.Vector3(3.95, 0, -2.75);
+    // Prod spots: at the foot of the dais, between the monkeys' angles.
+    for (const deg of [73, 95, 117, 139, 161]) {
+      for (const s of [-1, 1]) {
+        const a = THREE.MathUtils.degToRad(deg) * s;
+        add('prod', Math.sin(a) * 2.62, Math.cos(a) * 2.62, a + Math.PI);
+      }
+    }
+    const pile = kit?.anchor('st_rockpile')?.pos ?? new THREE.Vector3(layout.rockpile[0], 0, layout.rockpile[1]);
     add('rockpile', pile.x, pile.z, 0);
-    // Throwing line: a loose arc at the edge of the worn ground, nearest the pile first.
     const pileA = Math.atan2(pile.x, pile.z);
     for (const off of [-0.55, -0.2, 0.15, 0.5, 0.85, -0.9]) {
       const a = pileA + off;
@@ -188,19 +238,23 @@ export class Minions {
     if (!spots.get('seat')) for (const a of [2.4, -2.4, 2.9]) add('seat', Math.sin(a) * 4.6, Math.cos(a) * 4.6, a + Math.PI);
     if (!spots.get('eat')) add('eat', 4.6, -5.2, 0.4);
     this.spots = spots;
-    // Colliders: everything but the dais (creatures climb onto it to work).
+    // Colliders: everything but the dais (creatures climb onto it to work), plus parked machines.
     this.colliders = (kit?.colliders ?? []).filter((c) => Math.hypot(c.x, c.z) > 0.5).map((c) => ({ ...c }));
+    const trebs = Math.min(KINDS.trebuchet.max, this.owned.trebuchet ?? 0);
+    for (let i = 0; i < trebs; i++) this.colliders.push({ x: layout.trebuchet[i][0], z: layout.trebuchet[i][1], r: 1.5 });
   }
 
   /** Celebrate together (Freak Outs, shattered bosses). */
   cheer(dur = 1.4): void {
-    for (const list of Object.values(this.creatures)) for (const c of list) c.cheer(this.time, dur);
+    for (const pack of this.packs.values()) for (const u of pack.units) if (u instanceof Creature) u.cheer(this.time, dur);
   }
 
   /** Point at something interesting (a golden Freakmoji); null to stop. */
   pointAt(target: THREE.Vector3 | null): void {
-    for (const list of Object.values(this.creatures)) {
-      list.forEach((c, i) => c.point(target && i % 2 === 0 ? target : null));
+    for (const pack of this.packs.values()) {
+      pack.units.forEach((u, i) => {
+        if (u instanceof Creature) u.point(target && i % 2 === 0 ? target : null);
+      });
     }
   }
 
@@ -213,62 +267,102 @@ export class Minions {
     if (this.world.kit() !== this.spotKit) this.refreshSpots();
     const t = this.time;
 
-    for (const k of KINDS) {
-      const list = this.creatures[k];
+    for (const [id, pack] of this.packs) {
+      const list = pack.units;
       if (!list.length) continue;
       // Production → attack requests, handed to whoever is ready.
-      const owned = this.owned[k] ?? 0;
-      const rate = RATE[k] * (1 + Math.log10(Math.max(1, owned))) * this.frenzy * this.activity;
-      this.acc[k] += dt * Math.min(rate, 9);
-      const q = this.queue[k];
-      while (this.acc[k] >= 1) {
-        this.acc[k] -= 1;
+      const owned = this.owned[id] ?? 0;
+      const rate = pack.def.rate * (1 + Math.log10(Math.max(1, owned))) * this.frenzy * this.activity;
+      pack.acc += dt * Math.min(rate, 9);
+      const q = pack.queue;
+      while (pack.acc >= 1) {
+        pack.acc -= 1;
         if (q.length < 4) q.push(t);
       }
       while (q.length && t - q[0] > 2.5) q.shift();
-      for (const c of list) {
+      for (const u of list) {
         if (!q.length) break;
-        if (c.ready) {
+        if (u.ready) {
           q.shift();
-          this.fire(c);
+          this.fire(pack, u);
         }
       }
       const demand = Math.min(1, q.length / 3 + (this.frenzy > 1.2 ? 0.6 : 0));
-      for (const c of list) c.update(dt, t, this.env, list, demand);
+      for (const u of list) u.update(dt, t, this.env, list, demand);
     }
 
     this.updateFlights(dt);
+    this.puffs(dt);
     this.draw();
   }
 
-  private fire(c: Creature): void {
-    const env = this.env;
-    if (c.kind === 'monkey') {
-      c.attack(() => {
-        const at = c.hitPoint(env, new THREE.Vector3());
-        this.onImpact(at, 0.25, COLOR.monkey);
+  /** Steam bots and factories breathe smoke. */
+  private puffs(dt: number): void {
+    const steam = this.packs.get('steam');
+    if (steam) {
+      for (const u of steam.units) {
+        const c = u as Creature;
+        if (Math.random() > dt * (c.action >= 0 ? 14 : 1.6)) continue;
+        steam.crowd.begin();
+        steam.crowd.add(c.matrix(tmpM), c.pose, c.tint);
+        const top = tmpV.set(0.06, 0.4, -0.05).applyMatrix4(steam.crowd.partWorld('body'));
+        this.particles.smoke(top, 1, new THREE.Color(0xf0eeea), { size: 0.08, sizeEnd: 0.45, life: 1.2, vy: 1.0, a: 0.5 });
+      }
+    }
+    const fac = this.packs.get('factory');
+    if (fac) {
+      for (const u of fac.units) {
+        const f = u as Factory;
+        if (f.puff > 0) continue;
+        f.puff = 0.35 + Math.random() * 0.5;
+        this.particles.smoke(f.chimney(tmpV), 1, new THREE.Color(0x4a403c), { size: 0.5, sizeEnd: 2.6, life: 4.5, vy: 1.4, vx: 0.5, a: 0.55 });
+      }
+    }
+  }
+
+  /** Where a unit's blow lands on the star (facing side, at a sensible height). */
+  private hitPoint(u: Unit, h: number, out: THREE.Vector3): THREE.Vector3 {
+    const p = posOf(u);
+    return out.set(p.x - STAR.x, h - STAR.y, p.z - STAR.z).normalize().multiplyScalar(0.98).add(STAR);
+  }
+
+  private fire(pack: Pack, u: Unit): void {
+    const def = pack.def;
+    if (def.attack === 'touch') {
+      u.attack(() => this.onImpact(this.hitPoint(u, u instanceof Creature ? 0.75 : 1.05, new THREE.Vector3()), def.strength, def.color));
+      return;
+    }
+    if (def.attack === 'throw') {
+      u.attack(() => {
+        const from = this.handPoint(pack, u as Creature);
+        this.launch(from, this.hitPoint(u, 1.2, new THREE.Vector3()), 0.55, 0.9, 1, def);
       });
       return;
     }
-    c.attack(() => {
-      const from = this.handPoint(c);
-      const to = c.hitPoint(env, new THREE.Vector3());
-      this.flights.push({
-        from, to, t: 0, dur: 0.55, arc: 0.9,
-        spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, 0),
-        hit: () => this.onImpact(to.clone(), 0.38, COLOR.gorilla),
-        vel: new THREE.Vector3(), after: 0,
-      });
+    u.attack(() => {
+      const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone().setY(4);
+      const glove = def.ammo === 'glove';
+      this.launch(from, this.hitPoint(u, glove ? 1.3 : 1.6, new THREE.Vector3()), glove ? 1.4 : 1.25, glove ? 5 : 3.5, glove ? 1.6 : 2.2, def);
     });
   }
 
-  /** Midpoint above a creature's hands (where a carried rock sits). */
-  private handPoint(c: Creature): THREE.Vector3 {
-    const crowd = this.crowds.get(c.kind)!;
+  private launch(from: THREE.Vector3, to: THREE.Vector3, dur: number, arc: number, size: number, def: KindDef): void {
+    this.flights.push({
+      gear: def.ammo ?? 'rock',
+      from, to, t: 0, dur, arc, size,
+      spin: new THREE.Vector3(Math.random() * 8, Math.random() * 8, 0),
+      hit: () => this.onImpact(to.clone(), def.strength, def.color),
+      vel: new THREE.Vector3(), after: 0,
+    });
+  }
+
+  /** Midpoint between a gorilla's fists (where a carried rock sits). */
+  private handPoint(pack: Pack, c: Creature): THREE.Vector3 {
+    const crowd = pack.crowd;
     crowd.begin();
     crowd.add(c.matrix(tmpM), c.pose, c.tint);
-    const l = new THREE.Vector3(-0.08, -0.645, 0.19).applyMatrix4(crowd.partWorld('armL'));
-    const r = new THREE.Vector3(0.08, -0.645, 0.19).applyMatrix4(crowd.partWorld('armR'));
+    const l = new THREE.Vector3(-0.08, -0.54, 0.12).applyMatrix4(crowd.partWorld('armL'));
+    const r = new THREE.Vector3(0.08, -0.54, 0.12).applyMatrix4(crowd.partWorld('armR'));
     return l.add(r).multiplyScalar(0.5).add(new THREE.Vector3(0, 0.07, 0));
   }
 
@@ -284,13 +378,13 @@ export class Minions {
           const out = tmpV.copy(f.to).sub(STAR).normalize();
           f.vel.copy(out).multiplyScalar(2.2).add(new THREE.Vector3((Math.random() - 0.5) * 1.5, 2.6, 0));
           f.from.copy(f.to);
-          this.particles.smoke(f.to, 2, new THREE.Color(0x9a8c80), { size: 0.12, sizeEnd: 0.5, life: 0.6, a: 0.5 });
+          this.particles.smoke(f.to, Math.round(2 * f.size), new THREE.Color(0x9a8c80), { size: 0.12 * f.size, sizeEnd: 0.5 * f.size, life: 0.6, a: 0.5 });
         }
       } else {
         f.after += dt;
         f.vel.y -= 14 * dt;
         f.from.addScaledVector(f.vel, dt);
-        const g = this.world.heightAt(f.from.x, f.from.z) + 0.1;
+        const g = this.world.heightAt(f.from.x, f.from.z) + 0.1 * f.size;
         if (f.from.y < g) {
           f.from.y = g;
           f.vel.multiplyScalar(0.35);
@@ -305,52 +399,63 @@ export class Minions {
     const sh = this.shadows;
     let ns = 0;
     const put = (x: number, y: number, z: number, s: number, a: number): void => {
-      if (ns >= 64) return;
-      tmpM.compose(tmpV.set(x, y + 0.012, z), tmpQ.identity(), new THREE.Vector3(s, s, s));
+      if (ns >= 96 || s <= 0.01) return;
+      tmpM.compose(tmpV2.set(x, y + 0.012, z), tmpQ.identity(), tmpS.set(s, s, s));
       sh.setMatrixAt(ns, tmpM);
-      sh.setColorAt(ns, new THREE.Color(a, a, a));
+      sh.setColorAt(ns, shadowCol.setRGB(a, a, a));
       ns++;
     };
     this.rocks?.begin();
+    this.gloves?.begin();
     this.bananas?.begin();
-    for (const k of KINDS) {
-      const crowd = this.crowds.get(k);
-      if (!crowd) continue;
+    for (const pack of this.packs.values()) {
+      const crowd = pack.crowd;
       crowd.begin();
-      for (const c of this.creatures[k]) {
-        crowd.add(c.matrix(tmpM), c.pose, c.tint);
-        const g = this.world.heightAt(c.pos.x, c.pos.z);
-        put(c.pos.x, g, c.pos.z, (k === 'monkey' ? 0.42 : 0.78) * c.scale * c.spawn, 0.55);
-        if (c.holding === 'rock' && this.rocks) {
-          const l = tmpV.set(-0.08, -0.645, 0.19).applyMatrix4(crowd.partWorld('armL'));
-          const lx = l.x, ly = l.y, lz = l.z;
-          const r = tmpV.set(0.08, -0.645, 0.19).applyMatrix4(crowd.partWorld('armR'));
-          const p = new THREE.Vector3((lx + r.x) / 2, (ly + r.y) / 2 + 0.07, (lz + r.z) / 2);
-          this.rocks.add(tmpM.compose(p, tmpQ.setFromEuler(tmpE.set(0.3, c.yaw, 0.2)), ONE));
-        }
-        if (c.holding === 'banana' && this.bananas) {
-          const p = tmpV.set(-0.035, -0.25, 0.02).applyMatrix4(crowd.partWorld('armL'));
-          this.bananas.add(tmpM.compose(p, tmpQ.setFromEuler(tmpE.set(-0.6, c.yaw, 0.4)), ONE));
+      for (const u of pack.units) {
+        crowd.add(u.matrix(tmpM), u.pose, u.tint);
+        const p = posOf(u);
+        put(p.x, this.world.heightAt(p.x, p.z), p.z, pack.def.shadow * scaleOf(u) * u.spawn, 0.55);
+        if (u instanceof Creature) {
+          if (u.holding === 'rock' && this.rocks) {
+            const l = tmpV.set(-0.08, -0.54, 0.12).applyMatrix4(crowd.partWorld('armL'));
+            const lx = l.x, ly = l.y, lz = l.z;
+            const r = tmpV.set(0.08, -0.54, 0.12).applyMatrix4(crowd.partWorld('armR'));
+            this.rocks.add(tmpM.compose(tmpV2.set((lx + r.x) / 2, (ly + r.y) / 2 + 0.07, (lz + r.z) / 2), tmpQ.setFromEuler(tmpE.set(0.3, u.yaw, 0.2)), ONE));
+          }
+          if (u.holding === 'banana' && this.bananas) {
+            const b = tmpV.set(-0.035, -0.25, 0.02).applyMatrix4(crowd.partWorld('armL'));
+            this.bananas.add(tmpM.compose(b, tmpQ.setFromEuler(tmpE.set(-0.6, u.yaw, 0.4)), ONE));
+          }
+        } else if (u instanceof Trebuchet && u.ready && this.rocks) {
+          // A boulder waits in the sling.
+          this.rocks.add(tmpM.compose(u.muzzle(tmpV2), tmpQ.identity(), tmpS.set(2.2, 2.2, 2.2)));
         }
       }
       crowd.end();
     }
     for (const f of this.flights) {
-      if (!this.rocks) break;
+      const pool = f.gear === 'glove' ? this.gloves : this.rocks;
+      if (!pool) continue;
       let p: THREE.Vector3;
       if (f.hit) {
         p = tmpV.lerpVectors(f.from, f.to, f.t);
         p.y += Math.sin(f.t * Math.PI) * f.arc;
       } else p = tmpV.copy(f.from);
       const age = f.hit ? f.t * f.dur : f.dur + f.after;
-      const s = f.hit ? 1 : Math.max(0, 1 - Math.max(0, f.after - 1.1) / 0.5);
-      this.rocks.add(tmpM.compose(p, tmpQ.setFromEuler(tmpE.set(f.spin.x * age, f.spin.y * age, 0)), new THREE.Vector3(s, s, s)));
+      const s = (f.hit ? 1 : Math.max(0, 1 - Math.max(0, f.after - 1.1) / 0.5)) * f.size;
+      if (f.gear === 'glove' && f.hit) {
+        // Gloves fly palm-first, wobbling.
+        const dir = tmpV2.copy(f.to).sub(f.from).normalize();
+        tmpQ.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.sin(age * 9) * 0.5));
+        pool.add(tmpM.compose(p, tmpQ, tmpS.set(s, s, s)));
+      } else pool.add(tmpM.compose(p, tmpQ.setFromEuler(tmpE.set(f.spin.x * age, f.spin.y * age, 0)), tmpS.set(s, s, s)));
       if (!f.hit && s > 0.2) {
         const g = this.world.heightAt(p.x, p.z);
         put(p.x, g, p.z, 0.3 * s, Math.max(0, 0.5 - (p.y - g) * 0.3));
       }
     }
     this.rocks?.end();
+    this.gloves?.end();
     this.bananas?.end();
     sh.count = ns;
     sh.instanceMatrix.needsUpdate = true;
@@ -358,11 +463,11 @@ export class Minions {
   }
 
   setShadows(on: boolean): void {
-    for (const c of this.crowds.values()) c.setShadows(on);
+    for (const pack of this.packs.values()) pack.crowd.setShadows(on);
   }
 }
 
-/** Soft contact shadows: a radial-gradient quad per creature, always on (every tier). */
+/** Soft contact shadows: a radial-gradient quad per minion, always on (every tier). */
 function blobShadows(capacity: number): THREE.InstancedMesh {
   const c = document.createElement('canvas');
   c.width = c.height = 64;
@@ -387,4 +492,3 @@ function blobShadows(capacity: number): THREE.InstancedMesh {
   m.setColorAt(0, new THREE.Color(1, 1, 1));
   return m;
 }
-

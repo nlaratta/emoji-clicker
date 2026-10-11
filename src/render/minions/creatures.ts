@@ -8,7 +8,7 @@ import { POSE_STRIDE, makePose, type Crowd, type Rig } from './rig';
  * Attacks are requested by the production rate and handed to whichever
  * worker is ready, so what you see still tracks your gasps per second.
  */
-export type Kind = 'monkey' | 'gorilla';
+export type Kind = 'monkey' | 'gorilla' | 'steam';
 export type Mode = 'idle' | 'walk' | 'work' | 'sit' | 'eat' | 'cheer' | 'fidget' | 'pickup' | 'carry' | 'point';
 
 export interface Spot {
@@ -66,7 +66,7 @@ export class Creature {
   /** One-shot action (poke/throw/cheer) progress 0..1, or -1. */
   action = -1;
   private actionDur = 0.5;
-  private actionKind: 'poke' | 'throw' | 'cheer' | null = null;
+  private actionKind: 'poke' | 'prod' | 'throw' | 'cheer' | null = null;
   private onAction: (() => void) | null = null;
   private fired = false;
   holding: 'rock' | 'banana' | null = null;
@@ -92,26 +92,31 @@ export class Creature {
     this.kind = kind;
     this.pose = makePose(rig);
     this.target = makePose(rig);
-    this.scale = (kind === 'monkey' ? 1.38 : 1.28) * (0.92 + Math.random() * 0.16);
+    this.scale = (kind === 'monkey' ? 1.38 : kind === 'steam' ? 1.4 : 1.28) * (0.92 + Math.random() * 0.16);
     this.pace = 0.85 + Math.random() * 0.3;
     this.laziness = Math.random();
     const h = (Math.random() - 0.5) * 0.06;
     const v = 0.88 + Math.random() * 0.2;
     this.tint.setRGB(v * (1 + h), v, v * (1 - h));
-    this.acc = kind === 'monkey' ? [Math.random() < 0.3, Math.random() < 0.35] : [Math.random() < 0.35];
+    this.acc = kind === 'monkey' ? [Math.random() < 0.3, Math.random() < 0.35] : kind === 'gorilla' ? [Math.random() < 0.35] : [];
+    if (kind === 'steam') {
+      // Brass ages differently on every bot.
+      const v = 0.85 + Math.random() * 0.25;
+      this.tint.setRGB(v * (1.02 + h), v, v * (0.95 - h));
+    }
   }
 
   get ready(): boolean {
     if (this.action >= 0) return false;
     const step = this.plan[0];
-    if (this.kind === 'monkey') return step?.type === 'work' && this.mode === 'work';
+    if (this.kind !== 'gorilla') return step?.type === 'work' && this.mode === 'work';
     return step?.type === 'ready' && this.holding === 'rock';
   }
 
   /** True while the creature is on its way to (or at) a working position. */
   get busy(): boolean {
     const s = this.plan[0];
-    return !!s && (s.type === 'work' || s.type === 'ready' || s.type === 'pickup' || (s.type === 'goto' && !!s.spot && (s.spot.kind === 'poke' || s.spot.kind === 'throw' || s.spot.kind === 'rockpile')));
+    return !!s && (s.type === 'work' || s.type === 'ready' || s.type === 'pickup' || (s.type === 'goto' && !!s.spot && (s.spot.kind === 'poke' || s.spot.kind === 'prod' || s.spot.kind === 'throw' || s.spot.kind === 'rockpile')));
   }
 
   release(): void {
@@ -121,8 +126,8 @@ export class Creature {
 
   /** Perform an attack now; `fire` is called at the moment of impact/release. */
   attack(fire: () => void): void {
-    this.actionKind = this.kind === 'monkey' ? 'poke' : 'throw';
-    this.actionDur = this.kind === 'monkey' ? 0.42 / this.pace : 0.7;
+    this.actionKind = this.kind === 'monkey' ? 'poke' : this.kind === 'steam' ? 'prod' : 'throw';
+    this.actionDur = this.kind === 'monkey' ? 0.42 / this.pace : this.kind === 'steam' ? 0.5 : 0.7;
     this.action = 0;
     this.fired = false;
     this.onAction = fire;
@@ -155,6 +160,16 @@ export class Creature {
     // Demand (queued attacks, rally) pulls everyone to work; laziness pulls toward breaks.
     const breakChance = Math.max(0, 0.42 * (0.5 + this.laziness) - demand * 0.5);
     const roll = Math.random();
+    if (this.kind === 'steam') {
+      if (roll < breakChance * 0.4) {
+        const seat = this.reserve(env, 'shade') ?? this.reserve(env, 'seat');
+        if (seat) return void this.plan.push({ type: 'goto', spot: seat, to: seat.pos, face: seat.yaw }, { type: 'fidget', until: time + 3 + Math.random() * 3 });
+      }
+      const s = this.reserve(env, 'prod');
+      if (s) this.plan.push({ type: 'goto', spot: s, to: s.pos, face: s.yaw }, { type: 'work', until: time + 7 + Math.random() * 8 });
+      else this.plan.push({ type: 'fidget', until: time + 1.5 });
+      return;
+    }
     if (this.kind === 'monkey') {
       if (roll < breakChance * 0.45) {
         const seat = this.reserve(env, 'seat');
@@ -214,7 +229,7 @@ export class Creature {
         if (step.face !== undefined) wantYaw = step.face;
       } else {
         moving = true;
-        const speed = (this.kind === 'monkey' ? 1.35 : 1.0) * this.pace * Math.min(1, dist / 0.5 + 0.35);
+        const speed = (this.kind === 'monkey' ? 1.35 : this.kind === 'steam' ? 0.9 : 1.0) * this.pace * Math.min(1, dist / 0.5 + 0.35);
         const dir = d.multiplyScalar(1 / dist);
         this.steer(dir, env, crowd);
         this.speedNow += (speed - this.speedNow) * Math.min(1, dt * 6);
@@ -266,7 +281,7 @@ export class Creature {
 
     if (this.action >= 0) {
       this.action += dt / this.actionDur;
-      const fireAt = this.actionKind === 'throw' ? 0.55 : 0.48;
+      const fireAt = this.actionKind === 'throw' ? 0.55 : this.actionKind === 'prod' ? 0.42 : 0.48;
       if (!this.fired && this.action >= fireAt) {
         this.fired = true;
         this.onAction?.();
@@ -373,7 +388,9 @@ export class Creature {
     if (mk && P.tool >= 0) this.set(P.tool, 0.2, 0, 0);
 
     const m = this.mode;
-    if (m === 'walk' || m === 'carry' && this.speedNow > 0.05) {
+    if (this.kind === 'steam') {
+      this.animateSteam(dt, t, m, ph);
+    } else if (m === 'walk' || m === 'carry' && this.speedNow > 0.05) {
       const stride = mk ? 0.34 : 0.5;
       this.walkPhase += (this.speedNow * dt) / stride * Math.PI;
       const s = Math.sin(this.walkPhase);
@@ -383,9 +400,10 @@ export class Creature {
       this.add(P.legR, -s * swing);
       this.add(P.body, mk ? 0.12 * a : 0.05 * a, 0, Math.sin(this.walkPhase) * (mk ? 0.07 : 0.05) * a, 0, Math.abs(Math.cos(this.walkPhase)) * (mk ? 0.04 : 0.025) * a);
       if (m === 'carry') {
-        this.add(P.armL, -2.05, 0, 0.32);
-        this.add(P.armR, -2.05, 0, -0.32);
-        this.add(P.body, -0.3);
+        // Rock hugged to the chest, waddling upright.
+        this.add(P.armL, -1.15, 0, -0.32);
+        this.add(P.armR, -1.15, 0, 0.32);
+        this.add(P.body, -0.28);
       } else {
         this.add(P.armL, -s * swing * (mk ? 0.9 : 1.1));
         this.add(P.armR, s * swing * (mk ? 0.9 : 1.1));
@@ -400,11 +418,12 @@ export class Creature {
       this.add(P.legR, -0.15);
       this.add(P.legL, 0.12);
     } else if (m === 'carry') {
-      // Gorilla up on its legs, rock hoisted overhead, swaying impatiently.
-      this.add(P.armL, -2.1 + Math.sin(ph * 2) * 0.05, 0, 0.32);
-      this.add(P.armR, -2.1 - Math.sin(ph * 2) * 0.05, 0, -0.32);
-      this.add(P.body, -0.42, 0, Math.sin(ph) * 0.04, 0, 0.05);
-      this.add(P.head, -0.3);
+      // Gorilla up on its legs, rock hugged to the chest, bouncing impatiently.
+      const bounce = Math.abs(Math.sin(ph * 2.2));
+      this.add(P.armL, -1.2 + Math.sin(ph * 2) * 0.05, 0, -0.32);
+      this.add(P.armR, -1.2 - Math.sin(ph * 2) * 0.05, 0, 0.32);
+      this.add(P.body, -0.32, 0, Math.sin(ph) * 0.04, 0, 0.03 + bounce * 0.02);
+      this.add(P.head, -0.2);
     } else if (m === 'sit') {
       this.add(P.body, -0.12, 0, 0, 0, mk ? -0.13 : -0.18, -0.02);
       this.add(P.legL, -1.35, 0, 0.12);
@@ -423,8 +442,8 @@ export class Creature {
       const k = Math.min(1, this.stepTime / 0.5);
       const lift = Math.max(0, (this.stepTime - 0.6) / 0.5);
       this.add(P.body, 0.45 * k * (1 - lift), 0, 0, 0, -0.1 * k * (1 - lift));
-      this.add(P.armL, (-0.9 * k) * (1 - lift) - 2.5 * lift, 0, 0.2);
-      this.add(P.armR, (-0.9 * k) * (1 - lift) - 2.5 * lift, 0, -0.2);
+      this.add(P.armL, (-0.7 * k) * (1 - lift) - 1.15 * lift, 0, -0.3 * lift);
+      this.add(P.armR, (-0.7 * k) * (1 - lift) - 1.15 * lift, 0, 0.3 * lift);
     } else if (m === 'fidget') {
       if (mk) {
         // Scratch the head, look around.
@@ -443,7 +462,7 @@ export class Creature {
       this.add(P.head, -0.25);
     }
 
-    if (m === 'cheer') {
+    if (m === 'cheer' && this.kind !== 'steam') {
       if (mk) {
         const hop = Math.abs(Math.sin(t * 9 + this.seed));
         this.add(P.body, -0.1, 0, 0, 0, hop * 0.16);
@@ -463,7 +482,12 @@ export class Creature {
     }
 
     // One-shot actions layered on top.
-    if (this.action >= 0) {
+    if (this.action >= 0 && this.actionKind === 'prod') {
+      const a = this.action;
+      const shove = a < 0.3 ? -a / 0.3 * 0.3 : a < 0.45 ? -0.3 + (a - 0.3) / 0.15 * 1.3 : 1 - (a - 0.45) / 0.55;
+      this.add(P.tool, 0, 0, 0, 0, 0, Math.max(-0.08, shove) * 0.55);
+      this.add(P.body, -0.1 + Math.max(0, shove) * 0.2, 0, 0, 0, 0, Math.max(0, shove) * 0.05);
+    } else if (this.action >= 0) {
       const a = this.action;
       if (this.actionKind === 'poke') {
         // Wind up, thrust, recover.
@@ -475,11 +499,13 @@ export class Creature {
         this.add(P.legR, -0.25 * thrust);
         this.add(P.head, 0.05 * thrust);
       } else if (this.actionKind === 'throw') {
+        // Heave: lift the rock overhead, then hurl it forward.
         const wind = a < 0.4 ? a / 0.4 : a < 0.55 ? 1 - (a - 0.4) / 0.15 : 0;
         const swing = a < 0.4 ? 0 : a < 0.6 ? (a - 0.4) / 0.2 : 1 - (a - 0.6) / 0.4;
-        this.add(P.armL, -0.35 * wind + 1.5 * swing);
-        this.add(P.armR, -0.35 * wind + 1.5 * swing);
-        this.add(P.body, -0.25 * wind + 0.45 * swing, 0, 0, 0, 0, -0.05 * wind + 0.1 * swing);
+        this.add(P.armL, -1.3 * wind + 0.5 * swing, 0, 0.3 * wind);
+        this.add(P.armR, -1.3 * wind + 0.5 * swing, 0, -0.3 * wind);
+        this.add(P.body, -0.25 * wind + 0.5 * swing, 0, 0, 0, 0.04 * wind, -0.05 * wind + 0.12 * swing);
+        this.add(P.head, -0.25 * wind + 0.15 * swing);
       }
     }
 
@@ -493,6 +519,36 @@ export class Creature {
     for (let i = 0; i < S.length; i++) {
       S[i] += (T[i] - S[i]) * ((i % POSE_STRIDE) === 6 ? 1 : k);
     }
+  }
+
+  /** The brass bot: a rolling waddle, a stance with the piston levelled at the star. */
+  private animateSteam(dt: number, t: number, m: Mode, ph: number): void {
+    const P = this.parts;
+    if (m === 'walk') {
+      this.walkPhase += (this.speedNow * dt) / 0.18 * Math.PI;
+      const s = Math.sin(this.walkPhase);
+      const a = Math.min(1, this.speedNow);
+      this.add(P.legL, s * 0.6 * a);
+      this.add(P.legR, -s * 0.6 * a);
+      this.add(P.body, 0.06 * a, 0, s * 0.14 * a, 0, Math.abs(Math.cos(this.walkPhase)) * 0.035 * a);
+      this.add(P.armL, -s * 0.4 * a, 0, 0.2);
+      this.add(P.armR, -0.2);
+    } else if (m === 'work') {
+      this.add(P.armR, -0.15 - this.lookPitch * 0.8);
+      this.add(P.armL, -0.6, 0, 0.3 + Math.sin(ph * 3) * 0.1);
+      this.add(P.body, 0.05, 0, Math.sin(ph * 1.7) * 0.03);
+    } else if (m === 'cheer') {
+      const hop = Math.abs(Math.sin(t * 8 + this.seed));
+      this.add(P.body, 0, 0, Math.sin(t * 16) * 0.12, 0, hop * 0.12);
+      this.add(P.armL, -2.4, 0, 0.3);
+      this.add(P.armR, -1.6);
+    } else {
+      // Idle: a little shimmy, valve wheel twiddling.
+      this.add(P.body, 0, 0, Math.sin(ph * 1.3) * 0.05, 0, Math.max(0, Math.sin(ph * 2.6)) * 0.01);
+      this.add(P.armL, -0.4 + Math.sin(ph * 2) * 0.2, 0, 0.25);
+      this.add(P.armR, -0.25);
+    }
+    void dt;
   }
 
   /** Where this creature's hit lands on the star (for impact effects). */

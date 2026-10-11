@@ -16,6 +16,6 @@ for kit in "${KITS[@]}"; do
   echo "── $kit"
   "$BLENDER" -b --factory-startup -P "art/blender/$kit.py" -- "art/.raw/$kit.glb" "art/previews/$kit.png" 2>&1 \
     | grep -E "Error|Traceback|exported|^  File" || true
-  pnpm exec gltfpack -i "art/.raw/$kit.glb" -o "src/assets/models/$kit.glb" -cc -kn -ke -km -kv -vp 14 -vn 8 -vc 10
+  pnpm exec gltfpack -i "art/.raw/$kit.glb" -o "src/assets/models/$kit.glb" -cc -kn -ke -km -kv -vp 16 -vn 8 -vc 10
   ls -la "src/assets/models/$kit.glb" | awk '{printf "   %s  %.0f KB\n", $9, $5/1024}'
 done
