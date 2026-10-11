@@ -128,7 +128,7 @@ export class SpriteMinions {
     if (v.attack === 'moon') base.set(-20, v.height, -42);
     if (v.attack === 'pull') base.set(13, v.height, -14);
     Object.assign(slot, {
-      x: base.x, y: base.y, z: base.z, emoji: v.emoji, scale: 0, visible: true, alpha: 1, rot: 0, tint: 1,
+      x: base.x, y: base.y, z: base.z, emoji: `minion-${g.id}`, scale: 0, visible: true, alpha: 1, rot: 0, tint: 1,
       flip: base.x > 0,
     });
     g.units.push({ slot, base, angle, phase: Math.random() * 10, lunge: 0 });
@@ -230,10 +230,10 @@ export class SpriteMinions {
         break;
       case 'throw':
         u.lunge = 0.6;
-        this.fly.strike('🪨', from.clone().setY(from.y + 0.4), to.clone(), 0.5, 0.35, () => hit(0.35), from.x > 0);
+        this.fly.strike('weapon-2', from.clone().setY(from.y + 0.4), to.clone(), 0.5, 0.35, () => hit(0.35), from.x > 0);
         break;
       case 'catapult':
-        this.fly.strike('🪨', from.clone().setY(from.y + 1.5), to.clone(), 1.1, 0.65, () => {
+        this.fly.strike('weapon-2', from.clone().setY(from.y + 1.5), to.clone(), 1.1, 0.65, () => {
           hit(0.6);
           p.smoke(to, 3, new THREE.Color(0x8a7a6a));
         }, from.x > 0);
@@ -250,7 +250,7 @@ export class SpriteMinions {
         this.later(0.28, () => hit(0.2));
         break;
       case 'slap':
-        this.fly.strike('🖐️', from.clone().setY(from.y + 1), to.clone(), 0.55, 0.55, () => hit(0.5), from.x < 0);
+        this.fly.strike('feat-hands', from.clone().setY(from.y + 1), to.clone(), 0.55, 0.55, () => hit(0.5), from.x < 0);
         break;
       case 'tracer':
       case 'strafe': {
@@ -303,10 +303,10 @@ export class SpriteMinions {
         if (Math.random() < 0.3) hit(0.12);
         break;
       case 'paper':
-        this.fly.strike('📄', from.clone().setY(from.y + 0.5), to.clone(), 0.45, 0.4, () => hit(0.3), from.x > 0);
+        this.fly.strike('ui-chart', from.clone().setY(from.y + 0.5), to.clone(), 0.45, 0.4, () => hit(0.3), from.x > 0);
         break;
       case 'clone':
-        this.fly.strike('😳', from.clone(), to.clone(), 0.6, 0.6, () => {
+        this.fly.strike('feat-gsp', from.clone(), to.clone(), 0.6, 0.6, () => {
           hit(0.4);
           p.sparks(to, 8, c, 3);
         }, from.x > 0);

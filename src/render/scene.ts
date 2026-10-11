@@ -15,6 +15,7 @@ import type { GameEvent, HitRegion } from '../sim/events';
 import { WEAPONS, weaponFamily } from '../content/weapons';
 import { ERAS, FINAL_BOSS } from '../content/eras';
 import { fmt } from '../core/format';
+import { weaponIcon } from '../ui/icons';
 
 export type PickResult =
   | { kind: 'freakmoji'; dir: [number, number, number]; region: HitRegion }
@@ -255,7 +256,7 @@ export class GameScene {
           this.particles.ring(at, GOLD, 4, 0.5, 4);
           this.screen.flash('#ffe08a', 0.4);
           for (let i = 0; i < 12; i++) {
-            this.fly.toss('🌟', at.x, at.y, at.z, (Math.random() - 0.5) * 6, 3 + Math.random() * 4, (Math.random() - 0.5) * 3, { life: 1.4, scale0: 0.4, scale1: 0.2 });
+            this.fly.toss(i % 3 === 0 ? 'ui-golden' : 'ui-sparkle', at.x, at.y, at.z, (Math.random() - 0.5) * 6, 3 + Math.random() * 4, (Math.random() - 0.5) * 3, { life: 1.4, scale0: 0.4, scale1: 0.2 });
           }
           const label = { lucky: `LUCKY! +${fmt(e.value)}`, frenzy: 'GASP FRENZY ×7', storm: 'CLICK STORM ×10', freakout: 'INSTANT FREAK OUT' }[e.effect];
           this.floatAt(at, label, { size: 34, color: '#ffd23f', life: 1.8, vy: -50, spread: 0 });
@@ -297,7 +298,7 @@ export class GameScene {
           break;
         case 'buyWeapon': {
           const w = WEAPONS[e.index];
-          this.fly.toss(w.emoji, 0, 3.4, 1.2, 0, 1.5, 0, { life: 1.4, scale0: 1.2, scale1: 0.9, gravity: 3, spin: 0 });
+          this.fly.toss(weaponIcon(e.index), 0, 3.4, 1.2, 0, 1.5, 0, { life: 1.4, scale0: 1.2, scale1: 0.9, gravity: 3, spin: 0 });
           this.particles.sparks(new THREE.Vector3(0, 3.2, 1.2), 24, new THREE.Color(FAMILY_COLOR[w.family]), 4);
           break;
         }
@@ -338,7 +339,7 @@ export class GameScene {
 
     if (!auto || Math.random() < 0.35) {
       const family = weaponFamily(game.state.weapon);
-      const emoji = game.state.weapon >= 0 ? WEAPONS[game.state.weapon].emoji : '💥';
+      const emoji = game.state.weapon >= 0 ? weaponIcon(game.state.weapon) : 'feat-crt';
       this.strikes.strike(family, emoji, hitWorld, dir, { crit: e.crit, weak: e.weak, power, screen: this.screenUv(hitWorld) });
     }
 
@@ -370,9 +371,9 @@ export class GameScene {
     this.star.hit(dir, 2.5, { crit: true });
     this.hitStop = perfect ? 0.16 : 0.08;
     const family = weaponFamily(game.state.weapon);
-    const emoji = game.state.weapon >= 0 ? WEAPONS[game.state.weapon].emoji : '👊';
+    const emoji = game.state.weapon >= 0 ? weaponIcon(game.state.weapon) : 'weapon-0';
     this.strikes.strike(family, emoji, hitWorld, dir, { crit: true, weak: false, power: 1, screen: this.screenUv(hitWorld) });
-    this.strikes.strike('explosive', '🥊', hitWorld, dir, { crit: true, weak: false, power: charge, screen: this.screenUv(hitWorld) });
+    this.strikes.strike('explosive', 'ability-haymaker', hitWorld, dir, { crit: true, weak: false, power: charge, screen: this.screenUv(hitWorld) });
     this.particles.ring(hitWorld, perfect ? GOLD : new THREE.Color(1, 0.6, 0.3), 7 * Math.max(0.4, charge), 0.6, 2.4);
     this.screen.shockwave(this.screenUv(hitWorld), 1.6 * Math.max(0.5, charge));
     this.screen.flash(perfect ? '#fff2b0' : '#ffffff', perfect ? 0.35 : 0.18);
@@ -577,7 +578,7 @@ export class GameScene {
       this.freakoutConfetti += dtReal * 8;
       while (this.freakoutConfetti > 1) {
         this.freakoutConfetti -= 1;
-        const e = ['😱', '😳', '💥', '❗', '🫨'][Math.floor(Math.random() * 5)];
+        const e = ['feat-fo', 'feat-gsp', 'feat-crt', 'node-cap_dread', 'feat-eyes'][Math.floor(Math.random() * 5)];
         this.fly.toss(e, (Math.random() - 0.5) * 4.5, 3.6, 0.5 + Math.random() * 1.5, (Math.random() - 0.5) * 2, 0.5, 0, { life: 1.8, scale0: 0.7, scale1: 0.45, gravity: 2.5 });
       }
       this.screen.tint.set(1.15, 0.85, 1.05, 0.35 + Math.sin(t * 8) * 0.1);

@@ -6,6 +6,7 @@ import { WEAPONS } from '../content/weapons';
 import { fmt, fmtRate, fmtTime } from '../core/format';
 import { comboMult, isFreakingOut, weaponCost } from '../sim/economy';
 import { NEWS, NEWS_ANYTIME } from '../content/news';
+import { abilityIcon, eraIcon, icon, iconHtml, setIcon, weaponIcon } from './icons';
 
 export interface HudCallbacks {
   abilityDown(id: AbilityId): void;
@@ -23,6 +24,8 @@ export class Hud {
   private gpsRate: HTMLElement;
   private pokeRate: HTMLElement;
   private eraNum: HTMLElement;
+  private eraEmblem: HTMLElement;
+  private muteIcon: HTMLElement;
   private eraName: HTMLElement;
   private goal: HTMLElement;
   private gateBar: HTMLElement;
@@ -59,19 +62,31 @@ export class Hud {
     const counter = h(
       'div',
       { class: 'counter', 'aria-live': 'off' },
-      this.value,
+      h('div', { class: 'counter-main' }, icon('ui-gasp', 'coin'), this.value),
       this.unit,
-      h('div', { class: 'counter-rates' }, h('span', { class: 'rate', title: 'Gasps per second from minions' }, this.gpsRate, ' per second'), h('span', { class: 'rate', title: 'Gasps per poke' }, this.pokeRate, ' per poke')),
+      h('div', { class: 'counter-rates' },
+        h('span', { class: 'rate', title: 'Gasps per second from minions' }, icon('ui-rate'), this.gpsRate, ' per second'),
+        h('span', { class: 'rate', title: 'Gasps per poke' }, icon('ui-poke'), this.pokeRate, ' per poke'),
+      ),
     );
 
     this.eraNum = h('span', { class: 'era-numeral', text: 'I' });
     this.eraName = h('span', { class: 'era-name', text: '' });
     this.goal = h('div', { class: 'goal' });
     this.gateBar = h('i');
-    const badge = h('div', { class: 'era-badge' }, h('div', { class: 'era-line' }, this.eraNum, this.eraName), h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Progress to the next era' }, this.gateBar), this.goal);
+    this.eraEmblem = icon(eraIcon(0), 'emblem');
+    const badge = h('div', { class: 'era-badge plate' },
+      h('div', { class: 'medallion' }, this.eraEmblem),
+      h('div', { class: 'era-text' },
+        h('div', { class: 'era-line' }, this.eraNum, this.eraName),
+        h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Progress to the next era' }, this.gateBar),
+        this.goal,
+      ),
+    );
 
-    this.muteBtn = h('button', { class: 'key icon-key', 'aria-label': 'Mute sound', title: 'Mute (M)', onclick: () => cb.toggleMute() }, '🔊') as HTMLButtonElement;
-    const utility = h('div', { class: 'utility' }, this.muteBtn, h('button', { class: 'key icon-key', 'aria-label': 'Settings', title: 'Settings', onclick: () => cb.openSettings() }, '⚙️'));
+    this.muteIcon = icon('ui-sound');
+    this.muteBtn = h('button', { class: 'key icon-key', 'aria-label': 'Mute sound', title: 'Mute (M)', onclick: () => cb.toggleMute() }, this.muteIcon) as HTMLButtonElement;
+    const utility = h('div', { class: 'utility' }, this.muteBtn, h('button', { class: 'key icon-key', 'aria-label': 'Settings', title: 'Settings', onclick: () => cb.openSettings() }, icon('ui-settings')));
 
     this.comboBar = h('i');
     this.comboVal = h('span', { class: 'val', text: '×1' });
@@ -81,8 +96,8 @@ export class Hud {
     this.meters = h(
       'div',
       { class: 'meters' },
-      h('div', { class: 'meter-row combo' }, h('span', { text: 'Combo' }), h('div', { class: 'bar' }, this.comboBar), this.comboVal),
-      h('div', { class: 'meter-row freak' }, this.freakLabel, h('div', { class: 'bar' }, this.freakBar), this.freakVal),
+      h('div', { class: 'meter-row combo' }, icon('feat-cmb', 'meter-ico'), h('span', { text: 'Combo' }), h('div', { class: 'bar' }, this.comboBar), this.comboVal),
+      h('div', { class: 'meter-row freak' }, icon('feat-fo', 'meter-ico'), this.freakLabel, h('div', { class: 'bar' }, this.freakBar), this.freakVal),
     );
 
     const hotbar = h('div', { class: 'hotbar', role: 'toolbar', 'aria-label': 'Abilities' });
@@ -94,7 +109,7 @@ export class Hud {
         { class: 'key ability hidden', 'aria-label': `${a.name} (key ${a.key})`, title: a.name },
         h('span', { class: 'charge' }),
         h('span', { class: 'perfect-zone' }),
-        h('span', { 'aria-hidden': 'true', text: a.icon }),
+        icon(abilityIcon(a.id), 'ability-ico'),
         h('span', { class: 'hotkey', text: a.key }),
         cd,
         cdText,
@@ -126,13 +141,13 @@ export class Hud {
 
     this.gateName = h('span');
     this.gateTaunt = h('small');
-    this.gate = h('button', { class: 'key pink gate', hidden: true, onclick: () => cb.challengeBoss() }, this.gateName, this.gateTaunt) as HTMLButtonElement;
+    this.gate = h('button', { class: 'key pink gate', hidden: true, onclick: () => cb.challengeBoss() }, icon('ui-boss', 'gate-ico'), h('span', { class: 'gate-text' }, this.gateName, this.gateTaunt)) as HTMLButtonElement;
 
     this.bossName = h('div', { class: 'boss-name' });
     this.bossTaunt = h('div', { class: 'boss-taunt' });
     this.bossFill = h('i');
     this.bossTimer = h('div', { class: 'boss-timer' });
-    this.bossbar = h('div', { class: 'bossbar', hidden: true, role: 'status' }, this.bossName, this.bossTaunt, h('div', { class: 'bar' }, this.bossFill), this.bossTimer);
+    this.bossbar = h('div', { class: 'bossbar', hidden: true, role: 'status' }, h('div', { class: 'boss-head' }, icon('ui-boss', 'boss-ico'), this.bossName), this.bossTaunt, h('div', { class: 'bar' }, this.bossFill), this.bossTimer);
 
     this.ticker = h('div', { class: 'ticker', 'aria-hidden': 'true' });
 
@@ -140,7 +155,8 @@ export class Hud {
   }
 
   setMuted(muted: boolean): void {
-    setText(this.muteBtn, muted ? '🔇' : '🔊');
+    setIcon(this.muteIcon, muted ? 'ui-mute' : 'ui-sound');
+    setClass(this.muteBtn, 'muted', muted);
     this.muteBtn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
   }
 
@@ -224,6 +240,7 @@ export class Hud {
     setText(this.unit, s.gasps === 1 ? 'gasp' : 'gasps');
 
     const era = ERAS[s.era];
+    setIcon(this.eraEmblem, eraIcon(s.era));
     setText(this.eraNum, era.numeral);
     setText(this.eraName, era.name);
 
@@ -259,7 +276,7 @@ export class Hud {
     if (s.runGasps < 15 && s.stats.clicks < 10) return '<strong>Poke the Freakmoji</strong> to make it gasp.';
     const w = game.nextWeapon();
     if (w >= 0 && game.weaponUnlocked(w) && s.gasps < weaponCost(w, game.mods) && s.runGasps < 400) {
-      return `Next weapon: <strong>${WEAPONS[w].emoji} ${WEAPONS[w].name}</strong> at ${fmt(weaponCost(w, game.mods))} gasps.`;
+      return `Next weapon: ${iconHtml(weaponIcon(w))}<strong>${WEAPONS[w].name}</strong> at ${fmt(weaponCost(w, game.mods))} gasps.`;
     }
     if (next !== null) {
       const name = s.era < ERAS.length - 1 ? `Era ${ERAS[s.era + 1].numeral}` : 'the final boss';

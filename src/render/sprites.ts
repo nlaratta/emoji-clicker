@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import { WEAPONS } from '../content/weapons';
 import { PRODUCERS } from '../content/producers';
+import { ICON_ATLAS, iconIndex } from '../ui/icons';
+import iconIds from '../assets/icons/atlas.json';
 
 /**
- * Emoji are drawn once into a texture atlas at startup (using the system's
- * colour-emoji font) and rendered as billboards from a single instanced mesh.
- * This keeps the game's emoji-diorama identity without shipping image assets.
+ * Billboard sprite atlas. Every illustrated icon (art/icons) gets a cell,
+ * keyed by its icon id ('weapon-3', 'minion-drone', 'ui-golden'...), drawn
+ * in once the icon sheet has loaded. A few leftover emoji keys are drawn
+ * with the system font as a fallback for legacy props.
  */
 const EXTRA = [
   '💥', '✨', '⭐', '💫', '🔥', '💨', '💧', '🪨', '🔩', '⚡', '🌟', '💢', '❗', '❓', '🍌', '🪶',
@@ -23,7 +26,8 @@ export class EmojiAtlas {
   readonly cell = 128;
 
   constructor() {
-    const set = new Set<string>([...WEAPONS.map((w) => w.emoji), ...PRODUCERS.map((p) => p.emoji), ...EXTRA]);
+    const icons = Object.keys(iconIds.icons);
+    const set = new Set<string>([...icons, ...WEAPONS.map((w) => w.emoji), ...PRODUCERS.map((p) => p.emoji), ...EXTRA]);
     const list = [...set];
     this.cols = Math.ceil(Math.sqrt(list.length));
     this.rows = Math.ceil(list.length / this.cols);
@@ -34,13 +38,27 @@ export class EmojiAtlas {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${this.cell * 0.78}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji","Twemoji Mozilla",sans-serif`;
+    const iconSet = new Set(icons);
     list.forEach((e, i) => {
       this.index.set(e, i);
+      if (iconSet.has(e)) return;
       const x = (i % this.cols) * this.cell + this.cell / 2;
       const y = Math.floor(i / this.cols) * this.cell + this.cell / 2 + this.cell * 0.04;
       ctx.fillText(e, x, y);
     });
     this.texture = new THREE.CanvasTexture(canvas);
+    // Paint the illustrated icons into their cells once the sheet arrives.
+    const img = new Image();
+    img.onload = () => {
+      const c = ICON_ATLAS.cell;
+      for (const id of icons) {
+        const k = iconIndex(id);
+        const i = this.index.get(id)!;
+        ctx.drawImage(img, (k % ICON_ATLAS.cols) * c, Math.floor(k / ICON_ATLAS.cols) * c, c, c, (i % this.cols) * this.cell, Math.floor(i / this.cols) * this.cell, this.cell, this.cell);
+      }
+      this.texture.needsUpdate = true;
+    };
+    img.src = ICON_ATLAS.url;
     this.texture.colorSpace = THREE.SRGBColorSpace;
     this.texture.anisotropy = 4;
     this.texture.generateMipmaps = true;
