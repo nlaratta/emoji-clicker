@@ -5,7 +5,7 @@ import type { EraKit } from '../eraKit';
 import { loadModel } from '../assets';
 import { SpriteMinions, type ImpactFn } from './legacy';
 import { Crowd, GearPool, gearFromGltf, rigsFromGltf, type Rig } from './rig';
-import { Creature, type Circle, type Env, type Spot } from './creatures';
+import { Creature, standable, type Circle, type Env, type Spot } from './creatures';
 import { BlackHoleEngine, Drone, Factory, HoleFx, Jet, Knight, MoonCannon, Orbital, Paradox, Printer, Trebuchet, Turret, type Unit } from './machines';
 import layout from './layout.json';
 
@@ -208,14 +208,18 @@ export class Minions {
     const u = pack.def.make(rig, pack.units.length);
     if (u instanceof Creature) {
       u.bindRig(rig);
-      if (settled) {
-        const a = Math.PI + (Math.random() - 0.5) * 2.6;
-        const r = 3 + Math.random() * 2.5;
-        u.pos.set(Math.sin(a) * r, 0, Math.cos(a) * r);
-      } else {
-        // New hire: walks in from the edge of the clearing.
-        const a = Math.PI + (Math.random() - 0.5) * 2.2;
-        u.pos.set(Math.sin(a) * 9, 0, Math.cos(a) * 9);
+      // Somewhere open: never inside a rock, hut or parked machine.
+      for (let tries = 0; tries < 8; tries++) {
+        if (settled) {
+          const a = Math.PI + (Math.random() - 0.5) * 2.6;
+          const r = 3 + Math.random() * 2.5;
+          u.pos.set(Math.sin(a) * r, 0, Math.cos(a) * r);
+        } else {
+          // New hire: walks in from the edge of the clearing.
+          const a = Math.PI + (Math.random() - 0.5) * 2.2;
+          u.pos.set(Math.sin(a) * 9, 0, Math.cos(a) * 9);
+        }
+        if (standable(this.env, u.pos.x, u.pos.z, u.kind)) break;
       }
       u.pos.y = this.world.heightAt(u.pos.x, u.pos.z);
       u.yaw = Math.atan2(-u.pos.x, -u.pos.z);

@@ -36,8 +36,6 @@ export function middleAges(kit: EraKit, ctx: PropContext): EraScript {
   const wingR = part('wingR');
   const core = part('core');
   let roar = 6;
-  const pos = new THREE.Vector3();
-  const prev = new THREE.Vector3();
 
   return {
     update(dt, t, presence) {
@@ -51,14 +49,11 @@ export function middleAges(kit: EraKit, ctx: PropContext): EraScript {
       if (sails) sails.rotation.z = -t * 0.7;
       if (dragon) {
         const u = t * 0.045;
-        prev.copy(pos);
-        pos.set(Math.sin(u * Math.PI * 2) * 46, 24 + Math.sin(u * Math.PI * 4) * 4, -52 + Math.sin(u * Math.PI * 4) * 16);
-        dragon.position.copy(pos);
-        if (prev.lengthSq() > 0) {
-          const d = pos.clone().sub(prev);
-          dragon.rotation.y = Math.atan2(d.x, d.z);
-          dragon.rotation.z = THREE.MathUtils.clamp(-d.x * 0.0, -0.4, 0.4) + Math.cos(u * Math.PI * 2) * 0.3;
-        }
+        const a = u * Math.PI * 2;
+        dragon.position.set(Math.sin(a) * 46, 24 + Math.sin(a * 2) * 4, -52 + Math.sin(a * 2) * 16);
+        // Face along the path's tangent (not the last frame's step, which is zero on a dt = 0 frame).
+        dragon.rotation.y = Math.atan2(46 * Math.cos(a), 32 * Math.cos(a * 2));
+        dragon.rotation.z = Math.cos(a) * 0.3;
         const flap = Math.sin(t * 3.4);
         if (wingL) wingL.rotation.z = flap * 0.55 - 0.1;
         if (wingR) wingR.rotation.z = -flap * 0.55 + 0.1;

@@ -53,6 +53,15 @@ const wrap = (a: number): number => {
   return a;
 };
 
+/** Body radius used for avoidance (and the clearance a standing spot needs). */
+const bodyR = (kind: Kind): number => (kind === 'monkey' ? 0.22 : 0.38);
+
+/** True if a creature of this size can stand at (x, z) without being inside a collider. */
+export function standable(env: Env, x: number, z: number, kind: Kind): boolean {
+  const me = bodyR(kind);
+  return env.colliders().every((c) => Math.hypot(x - c.x, z - c.z) > c.r + me);
+}
+
 let nextId = 1;
 
 export class Creature {
@@ -75,10 +84,16 @@ export class Creature {
   readonly pose: Float32Array;
   private target: Float32Array;
   private walkPhase = Math.random() * TAU;
-  private stuck = 0;
+  /** Walking direction (eased, so steering can't flip it frame to frame). */
+  private heading = 0;
+  /** The goto step being walked, its closest approach so far and time since that improved. */
+  private walking: Step | null = null;
+  private bestDist = Infinity;
+  private stall = 0;
+  /** Which way round each obstacle we chose to go (kept until the walk ends). */
+  private detour = new Map<Circle, number>();
   /** Current height above the ground: eases up onto seats. */
   private perch = 0;
-  private lastPos = new THREE.Vector3();
   readonly tint = new THREE.Color();
   readonly scale: number;
   private readonly pace: number;
@@ -160,7 +175,7 @@ export class Creature {
     return s;
   }
 
-  private choose(env: Env, time: number, demand: number): void {
+  private choose(env: Env, time: number, demand: number, crowd: Creature[]): void {
     // Demand (queued attacks, rally) pulls everyone to work; laziness pulls toward breaks.
     const breakChance = Math.max(0, 0.42 * (0.5 + this.laziness) - demand * 0.5);
     const roll = Math.random();
@@ -182,10 +197,15 @@ export class Creature {
         const food = this.reserve(env, 'eat');
         if (food) return void this.plan.push({ type: 'goto', spot: food, to: food.pos, face: food.yaw }, { type: 'eat', until: time + 3 + Math.random() * 3 });
       } else if (roll < breakChance) {
-        const a = Math.random() * TAU;
-        const r = 3 + Math.random() * 3;
-        this.release();
-        return void this.plan.push({ type: 'goto', spot: null, to: new THREE.Vector3(Math.sin(a) * r, 0, Math.cos(a) * r - 1.5) }, { type: 'fidget', until: time + 2 + Math.random() * 2 });
+        // Wander somewhere open (not into a rock or a hut).
+        for (let tries = 0; tries < 6; tries++) {
+          const a = Math.random() * TAU;
+          const r = 3 + Math.random() * 3;
+          const to = new THREE.Vector3(Math.sin(a) * r, 0, Math.cos(a) * r - 1.5);
+          if (!standable(env, to.x, to.z, this.kind)) continue;
+          this.release();
+          return void this.plan.push({ type: 'goto', spot: null, to }, { type: 'fidget', until: time + 2 + Math.random() * 2 });
+        }
       }
       const s = this.reserve(env, 'poke');
       if (s) this.plan.push({ type: 'goto', spot: s, to: s.pos, face: s.yaw }, { type: 'work', until: time + 6 + Math.random() * 8 });
@@ -201,8 +221,23 @@ export class Creature {
       const pile = env.spots('rockpile');
       if (pile.length) {
         const p = pile[Math.floor(Math.random() * pile.length)];
-        const a = Math.random() * TAU;
-        const at = p.pos.clone().add(new THREE.Vector3(Math.sin(a) * 1.25, 0, Math.cos(a) * 1.25));
+        // Pick up from the star's side of the heap (so the carry to a throwing spot
+        // doesn't go back round it), somewhere open and clear of the other gorillas.
+        const toStar = Math.atan2(env.star.x - p.pos.x, env.star.z - p.pos.z);
+        const heap = env.colliders().find((c) => Math.hypot(c.x - p.pos.x, c.z - p.pos.z) < 0.6);
+        const reach = Math.max(1.25, heap ? heap.r + bodyR(this.kind) + 0.05 : 0);
+        const crowded = (x: number, z: number): boolean =>
+          crowd.some((o) => {
+            if (o === this) return false;
+            const to = o.plan[0]?.type === 'goto' ? o.plan[0].to : o.pos;
+            return Math.hypot(to.x - x, to.z - z) < 0.85;
+          });
+        let at = p.pos.clone();
+        for (let tries = 0; tries < 10; tries++) {
+          const a = toStar + (Math.random() - 0.5) * (2.4 + tries * 0.3);
+          at = p.pos.clone().add(new THREE.Vector3(Math.sin(a) * reach, 0, Math.cos(a) * reach));
+          if (standable(env, at.x, at.z, this.kind) && !crowded(at.x, at.z)) break;
+        }
         this.release();
         this.plan.push({ type: 'goto', spot: null, to: at, face: Math.atan2(p.pos.x - at.x, p.pos.z - at.z) }, { type: 'pickup' });
         return;
@@ -218,7 +253,7 @@ export class Creature {
 
   update(dt: number, time: number, env: Env, crowd: Creature[], demand: number): void {
     this.spawn = Math.min(1, this.spawn + dt * 2.5);
-    if (!this.plan.length) this.choose(env, time, demand);
+    if (!this.plan.length) this.choose(env, time, demand, crowd);
     const step = this.plan[0];
     this.stepTime += dt;
     let moving = false;
@@ -227,25 +262,38 @@ export class Creature {
     if (step?.type === 'goto') {
       const d = tmp.copy(step.to).sub(this.pos).setY(0);
       const dist = d.length();
-      if (dist < 0.12) {
+      if (step !== this.walking) {
+        this.walking = step;
+        this.bestDist = dist;
+        this.stall = 0;
+        this.detour.clear();
+        this.heading = this.yaw;
+      }
+      // Progress watchdog: time since we last got meaningfully closer.
+      if (dist < this.bestDist - 0.05) {
+        this.bestDist = dist;
+        this.stall = 0;
+      } else this.stall += dt;
+      // Arrived, or as close as a crowded spot allows.
+      if (dist < 0.12 || (dist < 0.45 && this.stall > 0.5)) {
         this.plan.shift();
         this.stepTime = 0;
         if (step.face !== undefined) wantYaw = step.face;
+      } else if (this.stall > 2) {
+        // Not getting any closer: give up on this target and choose again.
+        this.plan = [];
+        this.release();
       } else {
         moving = true;
         const speed = (this.kind === 'monkey' ? 1.35 : this.kind === 'steam' ? 0.9 : 1.0) * this.pace * Math.min(1, dist / 0.5 + 0.35);
         const dir = d.multiplyScalar(1 / dist);
-        this.steer(dir, env, crowd, step.to);
+        this.steer(dir, dist, env, crowd, step.to);
+        // Ease the heading toward the steered direction (no snap turns, no frame-to-frame flips).
+        this.heading += wrap(Math.atan2(dir.x, dir.z) - this.heading) * Math.min(1, dt * 10);
         this.speedNow += (speed - this.speedNow) * Math.min(1, dt * 6);
-        this.pos.addScaledVector(dir, this.speedNow * dt);
-        wantYaw = Math.atan2(dir.x, dir.z);
-        // Unstick: if we've barely moved for a while, give up on this target.
-        this.stuck = this.pos.distanceTo(this.lastPos) < 0.05 * dt * 60 ? this.stuck + dt : 0;
-        if (this.stuck > 2.5) {
-          this.plan = [];
-          this.release();
-          this.stuck = 0;
-        }
+        this.pos.x += Math.sin(this.heading) * this.speedNow * dt;
+        this.pos.z += Math.cos(this.heading) * this.speedNow * dt;
+        wantYaw = this.heading;
       }
     } else if (step) {
       const until = 'until' in step ? step.until : Infinity;
@@ -263,7 +311,7 @@ export class Creature {
       if (this.spot) wantYaw = this.spot.yaw;
     }
     if (!moving) this.speedNow = Math.max(0, this.speedNow - dt * 5);
-    this.lastPos.copy(this.pos);
+    if (step?.type !== 'goto') this.walking = null;
 
     // Face the star while working; turn smoothly.
     if (step?.type === 'work' || step?.type === 'ready') wantYaw = Math.atan2(env.star.x - this.pos.x, env.star.z - this.pos.z);
@@ -315,35 +363,85 @@ export class Creature {
     this.animate(dt, time);
   }
 
-  /** Steering: head for `dir`, slide around colliders and other creatures. */
-  private steer(dir: THREE.Vector3, env: Env, crowd: Creature[], goal: THREE.Vector3): void {
-    const me = this.kind === 'monkey' ? 0.22 : 0.38;
-    for (const c of env.colliders()) {
-      // The thing we're heading for (a bench, a log) doesn't push us away.
-      if (Math.hypot(goal.x - c.x, goal.z - c.z) < c.r + 0.3) continue;
-      tmp2.set(c.x - this.pos.x, 0, c.z - this.pos.z);
-      const d = tmp2.length();
-      const reach = c.r + me + 0.25;
-      if (d < reach + 0.6 && tmp2.dot(dir) > 0) {
-        // Push sideways around the obstacle, stronger when close.
-        const side = dir.x * tmp2.z - dir.z * tmp2.x > 0 ? 1 : -1;
-        const k = THREE.MathUtils.clamp((reach + 0.6 - d) / 0.6, 0, 1.5);
-        dir.x += -tmp2.z / d * side * k;
-        dir.z += tmp2.x / d * side * k;
-        if (d < reach) {
-          dir.x -= tmp2.x / d * (reach - d) * 3;
-          dir.z -= tmp2.z / d * (reach - d) * 3;
+  /**
+   * Steering: head for the goal along `dir` (`dist` away), detouring round
+   * colliders and easing past other creatures. Each obstacle is skirted on a
+   * side chosen once per walk, so a goal straight behind it can't make the
+   * creature dither left-right.
+   */
+  private steer(dir: THREE.Vector3, dist: number, env: Env, crowd: Creature[], goal: THREE.Vector3): void {
+    const me = bodyR(this.kind);
+    const colliders = env.colliders();
+    // Clearance round each collider: body contact plus a little air, but never
+    // so much that the goal itself (a seat, the rock heap's edge) is fenced off.
+    const clear = (c: Circle): number => Math.min(c.r + me + 0.12, Math.hypot(goal.x - c.x, goal.z - c.z) - 0.05);
+
+    // Detour: aim for the tangent of the nearest collider in our way. A few
+    // passes so a detour that runs into a second obstacle is bent round it too.
+    let range = dist;
+    for (let pass = 0; pass < 3; pass++) {
+      let block: Circle | null = null;
+      let blockAt = Infinity;
+      let blockR = 0;
+      for (const c of colliders) {
+        const R = clear(c);
+        if (R <= 0.05) continue;
+        const ox = c.x - this.pos.x;
+        const oz = c.z - this.pos.z;
+        const along = ox * dir.x + oz * dir.z;
+        if (along <= 0 || along > range + R) continue;
+        const near = Math.min(along, range);
+        if ((ox - dir.x * near) ** 2 + (oz - dir.z * near) ** 2 >= R * R) continue;
+        if (along < blockAt) {
+          block = c;
+          blockAt = along;
+          blockR = R;
         }
       }
+      if (!block) break;
+      const vx = block.x - this.pos.x;
+      const vz = block.z - this.pos.z;
+      const L = Math.hypot(vx, vz);
+      let side = this.detour.get(block);
+      if (side === undefined) {
+        // Go round on the goal's side; dead behind, keep turning the way we already face.
+        const cross = dir.x * vz - dir.z * vx;
+        const facing = Math.sin(this.yaw) * vz - Math.cos(this.yaw) * vx;
+        side = Math.abs(cross) > 0.05 * L ? Math.sign(cross) : facing < 0 ? -1 : 1;
+        this.detour.set(block, side);
+      }
+      // Rotate the bearing to the obstacle by the tangent angle (or a right angle when touching).
+      const a = side * (L > blockR ? Math.asin(blockR / L) : Math.PI / 2);
+      const cos = Math.cos(a);
+      const sin = Math.sin(a);
+      dir.set((vx * cos + vz * sin) / L, 0, (vz * cos - vx * sin) / L);
+      range = Math.min(dist, 1.2);
     }
+
+    // Personal space: a bounded nudge away from nearby walkers and workers.
     const room = this.kind === 'monkey' ? 0.5 : 0.95;
     for (const o of crowd) {
       if (o === this) continue;
       tmp2.set(this.pos.x - o.pos.x, 0, this.pos.z - o.pos.z);
       const d = tmp2.length();
-      if (d > 0.001 && d < room) dir.addScaledVector(tmp2, (room - d) / d * 1.5);
+      if (d > 0.001 && d < room) dir.addScaledVector(tmp2, ((room - d) / room) * 0.8 / d);
     }
     dir.setY(0).normalize();
+
+    // Never walk further into a collider we're already touching; ease back out.
+    for (const c of colliders) {
+      const R = clear(c);
+      if (R <= 0.05) continue;
+      tmp2.set(this.pos.x - c.x, 0, this.pos.z - c.z);
+      const d = tmp2.length();
+      if (d >= R || d < 0.001) continue;
+      tmp2.multiplyScalar(1 / d);
+      const inward = dir.dot(tmp2);
+      if (inward < 0) dir.addScaledVector(tmp2, -inward);
+      dir.addScaledVector(tmp2, ((R - d) / R) * 1.5);
+    }
+    if (dir.lengthSq() < 1e-6) dir.set(Math.sin(this.heading), 0, Math.cos(this.heading));
+    dir.normalize();
   }
 
   // ── Animation ──
