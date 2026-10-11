@@ -56,6 +56,7 @@ pnpm dev        # http://localhost:5173
 | `pnpm build` | Typecheck and build to `dist/` |
 | `pnpm test` | Unit tests: economy, simulation, saves, architecture |
 | `pnpm e2e` | Playwright tests against the production build under `/emoji-clicker/` |
+| `pnpm perf` | Per-era frame profile against the dev server: GPU time, JS time, draw calls and triangles, with each subsystem switched off in turn (`--tier=`, `--soft` for software rendering like CI) |
 | `pnpm balance [hours]` | Simulates bot playstyles and writes [`docs/balance.md`](docs/balance.md) |
 | `pnpm screenshots` | Regenerates the README images (needs `pnpm dev` running) |
 
