@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { FinalShader } from './post';
+import { Bloom, BloomPass, FinalShader } from './post';
 
 export type QualityTier = 'low' | 'medium' | 'high';
 
@@ -21,7 +19,7 @@ export class Stage {
   readonly rim: THREE.DirectionalLight;
   readonly hemi: THREE.HemisphereLight;
   readonly final: ShaderPass;
-  readonly bloom: UnrealBloomPass;
+  readonly bloom = new Bloom();
   private composer: EffectComposer;
   tier: QualityTier = 'medium';
   width = 1;
@@ -70,13 +68,13 @@ export class Stage {
     fill.position.set(3, 1, 6);
     this.scene.add(this.hemi, this.key, this.rim, fill);
 
+    // Scene → bloom pyramid (small targets) → one full-screen final pass that
+    // composites the bloom, applies the screen effects and tone maps.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.5, 2.4);
-    this.composer.addPass(this.bloom);
     this.final = new ShaderPass(FinalShader);
+    this.composer.addPass(new BloomPass(this.bloom, this.final.uniforms));
     this.composer.addPass(this.final);
-    this.composer.addPass(new OutputPass());
   }
 
   setTier(tier: QualityTier): void {
@@ -113,7 +111,7 @@ export class Stage {
     this.composer.setPixelRatio(pr);
     this.composer.setSize(this.width, this.height);
     const bloomScale = this.tier === 'high' ? 0.5 : 0.35;
-    this.bloom.resolution.set(this.width * pr * bloomScale, this.height * pr * bloomScale);
+    this.bloom.setSize(this.width * pr * bloomScale, this.height * pr * bloomScale);
     this.camera.aspect = this.width / this.height;
     // Keep the horizontal framing constant on narrow screens (continuous, so
     // resizing never jumps): 36° vertical at 1.5:1 and wider, more as it narrows.
