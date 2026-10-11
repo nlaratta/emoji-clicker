@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MatClass, splitByClass } from '../matclass';
 
 /**
@@ -10,6 +11,7 @@ import { MatClass, splitByClass } from '../matclass';
 export interface PartMesh {
   geometry: THREE.BufferGeometry;
   material: THREE.Material;
+  cls: MatClass;
 }
 
 export interface RigPart {
@@ -72,7 +74,7 @@ export function charMaterial(cls: MatClass): THREE.Material {
 
 /** A mesh's primitives, split back out by material class and baked to pivot space. */
 function partMeshes(m: THREE.Mesh, pivot: THREE.Vector3): PartMesh[] {
-  return [...splitByClass(m.geometry)].map(([cls, g]) => ({ geometry: bakePart(m, pivot, g), material: charMaterial(cls) }));
+  return [...splitByClass(m.geometry)].map(([cls, g]) => ({ geometry: bakePart(m, pivot, g), material: charMaterial(cls), cls }));
 }
 
 /** A part's own meshes: itself and any role-less descendants (gltfpack wrappers,
@@ -174,35 +176,99 @@ const _t = new THREE.Vector3();
 const _s = new THREE.Vector3();
 
 /**
- * Draws many instances of one rig: an InstancedMesh per part primitive. Call
- * `begin`, `add` per unit, then `end`.
+ * Per-instance, per-part transforms for a crowd live in a float texture: row
+ * = instance, four texels = that part's world matrix (column-major). The
+ * vertex shader fetches its part's matrix with texelFetch, so a whole
+ * character draws in one call per material class instead of one per part.
+ */
+const CROWD_VERT_HEAD = /* glsl */ `
+uniform highp sampler2D uParts;
+attribute float aPart;
+mat4 crowdPart() {
+  int x = int(aPart + 0.5) * 4;
+  int y = gl_InstanceID;
+  return mat4(texelFetch(uParts, ivec2(x, y), 0), texelFetch(uParts, ivec2(x + 1, y), 0),
+              texelFetch(uParts, ivec2(x + 2, y), 0), texelFetch(uParts, ivec2(x + 3, y), 0));
+}`;
+
+function crowdify(mat: THREE.Material, uParts: THREE.IUniform): THREE.Material {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uParts = uParts;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\n${CROWD_VERT_HEAD}`)
+      .replace('void main() {', 'void main() {\n  mat4 cPart = crowdPart();')
+      .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\n  objectNormal = mat3(cPart) * objectNormal;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  transformed = (cPart * vec4(transformed, 1.0)).xyz;');
+  };
+  mat.customProgramCacheKey = () => 'crowd';
+  return mat;
+}
+
+/** Merge every part's primitives of one material class, tagging vertices with their part. */
+function mergeClass(rig: Rig, cls: MatClass): THREE.BufferGeometry | null {
+  const list: THREE.BufferGeometry[] = [];
+  rig.parts.forEach((p, pi) => {
+    for (const pm of p.meshes) {
+      if (pm.cls !== cls) continue;
+      const g = pm.geometry.clone();
+      const n = g.getAttribute('position').count;
+      if (!g.getAttribute('color')) g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 4).fill(1), 4));
+      if (!g.index) g.setIndex([...Array(n).keys()]);
+      g.setAttribute('aPart', new THREE.BufferAttribute(new Float32Array(n).fill(pi), 1));
+      list.push(g);
+    }
+  });
+  if (!list.length) return null;
+  const merged = mergeGeometries(list, false);
+  for (const g of list) g.dispose();
+  return merged;
+}
+
+/**
+ * Draws many instances of one rig: one InstancedMesh per material class,
+ * every part merged in and posed on the GPU from the part-matrix texture.
+ * Call `begin`, `add` per unit, then `end`.
  */
 export class Crowd {
   readonly group = new THREE.Group();
   readonly rig: Rig;
-  private meshes: { part: number; mesh: THREE.InstancedMesh }[] = [];
+  private meshes: THREE.InstancedMesh[] = [];
   private world: THREE.Matrix4[];
   private n = 0;
   private capacity: number;
-  private hidden = new THREE.Matrix4().makeScale(0, 0, 0);
+  private readonly data: Float32Array;
+  private readonly texture: THREE.DataTexture;
+  private readonly rowFloats: number;
 
   constructor(rig: Rig, capacity: number) {
     this.rig = rig;
     this.capacity = capacity;
     this.world = rig.parts.map(() => new THREE.Matrix4());
-    rig.parts.forEach((p, pi) => {
-      for (const pm of p.meshes) {
-        const m = new THREE.InstancedMesh(pm.geometry, pm.material, capacity);
-        m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        m.castShadow = true;
-        m.receiveShadow = true;
-        m.frustumCulled = false;
-        m.count = 0;
-        m.name = `${rig.id}:${p.name}`;
-        this.meshes.push({ part: pi, mesh: m });
-        this.group.add(m);
-      }
-    });
+    const width = rig.parts.length * 4;
+    this.rowFloats = width * 4;
+    this.data = new Float32Array(this.rowFloats * capacity);
+    this.texture = new THREE.DataTexture(this.data, width, capacity, THREE.RGBAFormat, THREE.FloatType);
+    this.texture.magFilter = THREE.NearestFilter;
+    this.texture.minFilter = THREE.NearestFilter;
+    this.texture.generateMipmaps = false;
+    this.texture.needsUpdate = true;
+    const uParts = { value: this.texture };
+    for (const cls of [MatClass.Matte, MatClass.Gloss, MatClass.Metal, MatClass.Glow]) {
+      const geo = mergeClass(rig, cls);
+      if (!geo) continue;
+      const m = new THREE.InstancedMesh(geo, crowdify(charMaterial(cls).clone(), uParts), capacity);
+      m.customDepthMaterial = crowdify(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking }), uParts);
+      m.castShadow = cls !== MatClass.Glow;
+      m.receiveShadow = true;
+      m.frustumCulled = false;
+      m.count = 0;
+      m.name = `${rig.id}:${cls}`;
+      // Tints from the start, so the precompiled shader is the one that draws.
+      m.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3);
+      m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+      this.meshes.push(m);
+      this.group.add(m);
+    }
   }
 
   begin(): void {
@@ -213,6 +279,7 @@ export class Crowd {
   add(root: THREE.Matrix4, pose: Float32Array, tint: THREE.Color): void {
     if (this.n >= this.capacity) return;
     const parts = this.rig.parts;
+    const row = this.n * this.rowFloats;
     for (let i = 0; i < parts.length; i++) {
       const o = i * POSE_STRIDE;
       const p = parts[i];
@@ -222,11 +289,11 @@ export class Crowd {
       _s.set(sc, sc, sc);
       _m.compose(_t, _q, _s);
       this.world[i].multiplyMatrices(p.parent >= 0 ? this.world[p.parent] : root, _m);
+      // A part scaled to nothing collapses (its matrix is zero).
+      if (sc <= 0.001) this.data.fill(0, row + i * 16, row + i * 16 + 16);
+      else this.data.set(this.world[i].elements, row + i * 16);
     }
-    for (const { part, mesh } of this.meshes) {
-      mesh.setMatrixAt(this.n, pose[part * POSE_STRIDE + 6] <= 0.001 ? this.hidden : this.world[part]);
-      mesh.setColorAt(this.n, tint);
-    }
+    for (const mesh of this.meshes) mesh.setColorAt(this.n, tint);
     this.n++;
   }
 
@@ -236,15 +303,15 @@ export class Crowd {
   }
 
   end(): void {
-    for (const { mesh } of this.meshes) {
+    for (const mesh of this.meshes) {
       mesh.count = this.n;
-      mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     }
+    if (this.n > 0) this.texture.needsUpdate = true;
   }
 
   setShadows(on: boolean): void {
-    for (const { mesh } of this.meshes) mesh.castShadow = on;
+    for (const mesh of this.meshes) mesh.castShadow = on && !mesh.name.endsWith(`:${MatClass.Glow}`);
   }
 }
 
