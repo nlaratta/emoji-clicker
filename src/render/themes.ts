@@ -91,7 +91,7 @@ export const THEMES: Theme[] = [
     clouds: 0.25, cloudColor: 0x3a3a5a, ridge: 0, ridgeColor: 0x000000, skyline: 0.6, warp: 0,
     groundA4: [0, 0, 0, 1], groundB4: [0, 0, 0, 0], groundA: 0x2a2c34, groundB: 0x1a1c22, gridColor: 0xffd23f,
     fog: 0x1e2648,
-    hemiSky: 0x6a80c4, hemiGround: 0x1c1c2c, hemiInt: 0.36, keyColor: 0xb4c8ff, keyInt: 1.05, rimColor: 0x4ab0ff, rimInt: 1.6,
+    hemiSky: 0x6a80c4, hemiGround: 0x1c1c2c, hemiInt: 0.3, keyColor: 0xb4c8ff, keyInt: 0.9, rimColor: 0x4ab0ff, rimInt: 2.1,
     platform: 0x3a3c44, platformRim: 0x4ab0ff, bloom: 0.85, fogNear: 22, fogFar: 150, accent: '#4ab0ff',
   },
   // V — Neon Overdrive: rain-slick night, magenta city-glow on low cloud, cyan and amber signage.
@@ -116,16 +116,16 @@ export const THEMES: Theme[] = [
     hemiSky: 0x8a80d8, hemiGround: 0x2a1a3a, hemiInt: 0.36, keyColor: 0xfff2e0, keyInt: 2.3, rimColor: 0x9a6aff, rimInt: 2.2,
     platform: 0x4a4250, platformRim: 0x9a6aff, bloom: 0.85, fogNear: 70, fogFar: 380, accent: '#9a6aff',
   },
-  // VII — Reality breaks
+  // VII — Reality has left: a pastel island in an iridescent void.
   {
-    skyTop: 0x04121c, skyHorizon: 0x5a1aa8, skyBottom: 0x1a0030,
-    sunDir: [0, 0.5, -0.85], keyDir: [-0.45, 0.62, 0.62], sunColor: 0xffffff, sunSize: 0.05, sunStripes: 0,
-    stars: 0.8, nebula: 0.4, nebA: 0x00c890, nebB: 0xc8008a,
-    clouds: 0, cloudColor: 0x000000, ridge: 0, ridgeColor: 0x000000, skyline: 0, warp: 1,
-    groundA4: [0, 0, 0, 0], groundB4: [0, 0.35, 1, 0], groundA: 0x0a0a14, groundB: 0x14142a, gridColor: 0x6affd8,
-    fog: 0x1a1a3a,
-    hemiSky: 0xd0fff0, hemiGround: 0x3a0a4a, hemiInt: 0.64, keyColor: 0xffffff, keyInt: 1.76, rimColor: 0xff3ae0, rimInt: 2.6,
-    platform: 0x2a2a3a, platformRim: 0x6affd8, bloom: 1.2, fogNear: 60, fogFar: 260, accent: '#6affd8',
+    skyTop: 0x1a1040, skyHorizon: 0xc88ad8, skyBottom: 0x2a1a5a,
+    sunDir: [-0.4, 0.6, 0.6], keyDir: [-0.4, 0.62, 0.62], sunColor: 0xfff0f8, sunSize: 0.03, sunStripes: 0,
+    stars: 0.7, nebula: 0.7, nebA: 0x3ae0c0, nebB: 0xff6ad0,
+    clouds: 0.35, cloudColor: 0xf0c8f0, ridge: 0, ridgeColor: 0x000000, skyline: 0, warp: 0.15,
+    groundA4: [0, 0, 0, 1], groundB4: [0, 0, 0, 0], groundA: 0x9ad8b0, groundB: 0x5aa088, gridColor: 0x6affd8,
+    fog: 0x8a6ab8,
+    hemiSky: 0xf4e8ff, hemiGround: 0x6a4a8a, hemiInt: 0.62, keyColor: 0xfff4ec, keyInt: 2.0, rimColor: 0x6affd8, rimInt: 2.0,
+    platform: 0x2a2a3a, platformRim: 0x6affd8, bloom: 0.8, fogNear: 34, fogFar: 170, accent: '#6affd8',
   },
 ];
 

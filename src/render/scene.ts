@@ -455,7 +455,7 @@ export class GameScene {
     this.era = era;
     this.world.setEra(era, instant);
     this.rig.drift = era >= 6 ? 1 : 0;
-    this.screen.baseAberration = era >= 6 ? 0.007 : era >= 4 ? 0.004 : 0.0025;
+    this.screen.baseAberration = era >= 6 ? 0.003 : era >= 4 ? 0.0022 : 0.0015;
     this.screen.baseGlitch = 0;
     if (!instant) {
       this.rig.eraTransition(3.4);

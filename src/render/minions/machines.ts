@@ -736,3 +736,95 @@ export class HoleFx {
     this.haloMat.uniforms.uPulse.value = unit.pulse;
   }
 }
+
+/**
+ * Reality Printer: the head sweeps back and forth while a cube of fresh
+ * reality grows on the build plate; when it's done, it's flung at the star.
+ */
+export class Printer extends Base {
+  /** 0–1 build progress of the cube on the plate. */
+  progress = Math.random() * 0.6;
+  private readonly speed = 0.8 + Math.random() * 0.3;
+
+  constructor(rig: Rig, slot: THREE.Vector3) {
+    super(rig);
+    this.pos.copy(slot);
+    this.yaw = Math.atan2(-slot.x, -slot.z);
+    this.scale = 1.15;
+  }
+
+  get ready(): boolean {
+    return this.progress >= 1 && this.spawn >= 1;
+  }
+
+  attack(fire: () => void): void {
+    fire();
+    this.progress = 0;
+  }
+
+  update(dt: number, t: number, env: Env): void {
+    this.spawn = Math.min(1, this.spawn + dt * 1.5);
+    this.pos.y = env.height(this.pos.x, this.pos.z);
+    this.progress = Math.min(1, this.progress + dt * this.speed);
+    const printing = this.progress < 1;
+    const sweep = printing ? Math.sin(t * 9 + this.seed) * 0.42 : 0;
+    this.move('head', sweep, printing ? -0.05 - this.progress * 0.25 : 0, 0);
+    this.rot('body', 0, 0, printing ? Math.sin(t * 18) * 0.004 : 0);
+  }
+
+  /** Centre of the cube on the plate. */
+  muzzle(out: THREE.Vector3): THREE.Vector3 {
+    const s = this.scale;
+    return out.set(0, 0.9 + 0.15 * this.progress, 0.35).multiplyScalar(s).applyAxisAngle(UP, this.yaw).add(this.pos);
+  }
+}
+
+/**
+ * Paradox Engine: an hourglass that keeps flipping inside a turning Möbius
+ * band. Its hits land before it fires: the star flinches, then the echo
+ * travels back to the engine, which only then lights up.
+ */
+export class Paradox extends Base {
+  private cooldown = Math.random();
+  private flip = 0;
+  private flipT = 0;
+  private core = 0;
+  glow = 0;
+
+  constructor(rig: Rig, slot: THREE.Vector3) {
+    super(rig);
+    this.pos.copy(slot);
+    this.yaw = Math.atan2(-slot.x, -slot.z);
+    this.scale = 1.05;
+  }
+
+  get ready(): boolean {
+    return this.cooldown <= 0 && this.spawn >= 1;
+  }
+
+  attack(fire: () => void): void {
+    this.cooldown = 0.9 + Math.random() * 0.6;
+    fire();
+  }
+
+  update(dt: number, t: number, env: Env): void {
+    this.spawn = Math.min(1, this.spawn + dt * 1.5);
+    this.pos.y = env.height(this.pos.x, this.pos.z);
+    this.cooldown -= dt;
+    this.glow = Math.max(0, this.glow - dt * 3);
+    // Flip the hourglass every few seconds (an eased half turn).
+    this.flipT -= dt;
+    if (this.flipT <= 0) {
+      this.flipT = 2.5 + Math.random() * 2;
+      this.flip += 1;
+    }
+    this.core += (this.flip * Math.PI - this.core) * Math.min(1, dt * 4);
+    this.rot('core', this.core, 0, 0);
+    this.rot('ring', 0.9 + Math.sin(t * 0.4 + this.seed) * 0.3, t * 0.7, Math.cos(t * 0.3 + this.seed) * 0.25);
+    this.move('ring', 0, Math.sin(t * 1.3 + this.seed) * 0.05 + this.glow * 0.08, 0);
+  }
+
+  muzzle(out: THREE.Vector3): THREE.Vector3 {
+    return out.set(0, 1.95 * this.scale, 0).add(this.pos);
+  }
+}

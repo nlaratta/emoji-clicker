@@ -39,10 +39,10 @@ designed, sculpted and painted for this game, not assembled from primitives.
 | I · Stone Age | Golden-hour meadow below sandstone mesas, a camp and a smoking volcano | Low apricot sun, violet shadows | Sage and olive greens, ochre earth, terracotta rock, teal pines |
 | II · Middle Ages | Crisp spring morning in a castle bailey | High warm-white sun, blue sky fill | Cream stone, terracotta roofs, heraldic red/blue/gold, deep greens |
 | III · Industrial | Smoggy amber afternoon in a factory yard | Hazy orange sun through smoke | Brick red, soot grey, brass and copper, sepia haze |
-| IV · Modern | Blue-hour city rooftop | Cool moonlight; warm sodium streetlights | Navy, steel, sodium orange, window gold |
-| V · Neon future | Synthwave dusk over a chrome grid | Magenta sun, cyan rim | Violet, magenta, cyan, chrome |
-| VI · Cosmic | A tiny inhabited asteroid in a nebula | Cold white starlight, warm base lights | Indigo, teal nebula, warm basalt, signal orange |
-| VII · Reality | A calm, impossible dream: floating fragments and gentle wrongness | Soft pearly light from everywhere | Mint, lilac, pearl, iridescent accents |
+| IV · Modern | Blue-hour city plaza: a helipad, a ring road and a stepped skyline of lit windows | Cool moonlight; warm sodium pools on the paving; sweeping searchlights | Navy, slate, sodium orange, window gold |
+| V · Neon Overdrive | A rain-slick arcade district: noodle stall, arcade cabinets, a maglev line, megatowers with holo billboards | Low violet key under magenta city-glow cloud; cyan and amber practicals | Wet slate, magenta, cyan, lantern orange |
+| VI · Cosmic | A mining outpost on a tiny asteroid whose ground curves away to a close horizon; a ringed giant beyond | Hard white sunlight, deep violet shadow | Lavender regolith, white and gold hardware, hazard amber, violet crystal |
+| VII · Reality | A pastel floating island built from fragments of every era, drifting in an iridescent void | Soft pearly key, mint rim | Mint, lilac, peach, cream, with each earlier era's palette in its fragments |
 
 Later eras escalate in spectacle through architecture, light and atmosphere, never through more
 particles or neon on generic geometry.
@@ -53,5 +53,8 @@ particles or neon on generic geometry.
   AO-baked, meshopt-compressed glTF into `src/assets/models/`. Rebuild with `art/build.sh`.
 - **Icons:** illustrated with a local Krea 2 Turbo model from prompts in `art/icons/catalog.py`, keyed
   and packed into an atlas by `art/icons/pack.py`.
+- **Layout:** `src/render/minions/layout.json` holds every machine minion's slot; the era scripts
+  (`art/blender/eraN.py`) keep big scenery off those slots (`Composer.slot_clear`) and export named
+  anchors (lamps, smoke, seats, paths) that the era scripts in `src/render/eras/` bring to life.
 - **Runtime:** one shared vertex-colour material family with wind sway and the era reveal built into
   the vertex shader; static props are merged per era; repeated props and minion parts are instanced.

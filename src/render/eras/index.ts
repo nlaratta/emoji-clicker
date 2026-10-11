@@ -6,6 +6,7 @@ import { freakdustrial } from './industrial';
 import { shockAndAwe } from './modern';
 import { neonOverdrive } from './neon';
 import { spaceOutpost } from './space';
+import { realityLeft } from './reality';
 
 /**
  * Era scripts bring a kit to life: practical lights, fire and smoke,
@@ -24,6 +25,7 @@ const SCRIPTS: Record<number, (kit: EraKit, ctx: PropContext) => EraScript> = {
   3: shockAndAwe,
   4: neonOverdrive,
   5: spaceOutpost,
+  6: realityLeft,
 };
 
 export function attachEraScript(era: number, kit: EraKit, ctx: PropContext): EraScript | null {

@@ -843,6 +843,106 @@ def blackhole():
     return root
 
 
+# ───────────────────────────────────────────── Reality Printer
+def printer():
+    """A chunky cream 3D printer: a body with a mint stripe and a glowing
+    panel, a build plate out front, and a gantry whose print head (its own
+    part) sweeps side to side while a cube of new reality grows."""
+    from hard import block, cylinder
+    CREAM_, MINT_, DARK = C("#f4ecdc"), C("#6affd8"), C("#3a3450")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    root = character("printer")
+    body = [block("pr_body", 1.6, 1.1, 0.75, CREAM_, bevel=0.12, seg=2, at=(0, 0.1, 0.12), flat=False)]
+    stripe = block("pr_stripe", 1.62, 1.12, 0.1, MINT_, bevel=0, at=(0, 0.1, 0.55))
+    body.append(stripe)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            body.append(cylinder(f"pr_foot{sx}{sy}", 0.09, 0.11, 0.12, DARK, segs=10, bevel=0.01, at=(sx * 0.62, 0.1 + sy * 0.38, 0)))
+    plate = block("pr_plate", 0.75, 0.55, 0.06, C("#2a2440"), bevel=0.02, at=(0, -0.35, 0.87))
+    body.append(plate)
+    screen = block("pr_screen", 0.36, 0.04, 0.2, MINT_, bevel=0, at=(0.48, -0.46, 0.45))
+    screen.data.materials.clear()
+    screen.data.materials.append(GLOW)
+    paint_solid(screen, MINT_)
+    body.append(screen)
+    for sx in (-1, 1):
+        body.append(block(f"pr_tower{sx}", 0.16, 0.22, 1.05, CREAM_, bevel=0.05, at=(sx * 0.68, -0.1, 0.85)))
+    body.append(block("pr_bar", 1.52, 0.18, 0.16, DARK, bevel=0.04, at=(0, -0.1, 1.82)))
+    for sx in (-1, 1):
+        lamp = blob(f"pr_lamp{sx}", (0.05, 0.05, 0.05), (sx * 0.68, -0.22, 1.92), 1)
+        lamp.data.materials.clear()
+        lamp.data.materials.append(GLOW)
+        paint_solid(lamp, C("#ff7ad8"))
+        body.append(lamp)
+    b = part(join(body, "pr_bodyj"), "printer_body", Vector((0, 0, 0)), root)
+    head = [block("pr_carriage", 0.3, 0.3, 0.28, C("#ff9ad8"), bevel=0.06, at=(0, -0.1, 1.62))]
+    head.append(cylinder("pr_nozzle", 0.05, 0.02, 0.18, C("#c8ccd4"), segs=8, bevel=0, at=(0, -0.25, 1.45)))
+    tip = blob("pr_tip", (0.04, 0.04, 0.04), (0, -0.25, 1.44), 1)
+    tip.data.materials.clear()
+    tip.data.materials.append(GLOW)
+    paint_solid(tip, C("#ff7ad8"))
+    head.append(tip)
+    part(join(head, "pr_headj"), "printer_head", Vector((0, -0.1, 1.7)), b)
+    return root
+
+
+# ───────────────────────────────────────────── Paradox Engine
+def paradox():
+    """A hexagonal plinth holding an hourglass (its own part, it flips) inside
+    a slowly turning Möbius band of pastel light (also its own part)."""
+    import bmesh as _bm
+    from hard import cylinder
+    DARK, MINT_, PINK_, LILAC_ = C("#2a2050"), C("#6affd8"), C("#ff7ad8"), C("#c89aff")
+    GLOW = vtx_material("Glow", rough=1.0, emissive=True)
+    root = character("paradox")
+    base = [cylinder("px_plinth", 0.75, 0.9, 0.55, DARK, segs=6, bevel=0.04, flat=True)]
+    base.append(cylinder("px_cap", 0.62, 0.7, 0.12, LILAC_, segs=6, bevel=0.02, at=(0, 0, 0.55), flat=True))
+    seam = cylinder("px_seam", 0.92, 0.92, 0.05, MINT_, segs=6, bevel=0, at=(0, 0, 0.05), flat=True)
+    seam.data.materials.clear()
+    seam.data.materials.append(GLOW)
+    paint_solid(seam, MINT_)
+    base.append(seam)
+    base.append(cylinder("px_stem", 0.08, 0.1, 0.75, C("#c8ccd4"), segs=8, bevel=0, at=(0, 0, 0.65)))
+    b = part(join(base, "px_basej"), "paradox_base", Vector((0, 0, 0)), root)
+    # The Möbius band: a ribbon round a circle with a half twist.
+    bm = _bm.new()
+    N, R, W = 72, 0.8, 0.17
+    rows = []
+    for i in range(N):
+        th = i / N * math.tau
+        ph = th / 2
+        radial = Vector((math.cos(th), math.sin(th), 0))
+        up = Vector((0, 0, 1))
+        c = radial * R + Vector((0, 0, 1.95))
+        d = radial * math.cos(ph) + up * math.sin(ph)
+        rows.append((bm.verts.new(c - d * W), bm.verts.new(c + d * W)))
+    for i in range(N):
+        a0, a1 = rows[i]
+        b0, b1 = rows[(i + 1) % N]
+        if i == N - 1:
+            b0, b1 = b1, b0  # the half twist joins the band to its own back
+        bm.faces.new((a0, b0, b1, a1))
+    band = mesh_obj(bm, "px_band", smooth=True)
+    sol = band.modifiers.new("S", "SOLIDIFY")
+    sol.thickness = 0.05
+    apply_mods(band)
+    paint(band, lambda co, n, *_: mix(mix(MINT_, PINK_, 0.5 + 0.5 * math.sin(math.atan2(co.y, co.x) * 2)), LILAC_, 0.25))
+    band.data.materials.clear()
+    band.data.materials.append(GLOW)
+    part(band, "paradox_ring", Vector((0, 0, 1.95)), b)
+    glass = [blob("px_g0", (0.26, 0.26, 0.3), (0, 0, 2.2), 2), blob("px_g1", (0.26, 0.26, 0.3), (0, 0, 1.7), 2)]
+    for g in glass:
+        g.data.materials.clear()
+        g.data.materials.append(GLOSS)
+        paint_solid(g, C("#d8f0ff"))
+    sand = blob("px_sand", (0.2, 0.2, 0.12), (0, 0, 1.55), 2)
+    paint_solid(sand, C("#ffd88a"))
+    caps = [cylinder(f"px_hcap{k}", 0.3, 0.3, 0.06, LILAC_, segs=12, bevel=0.01, at=(0, 0, z)) for k, z in enumerate((1.38, 2.46))]
+    core = join(glass + [sand] + caps, "px_corej")
+    part(core, "paradox_core", Vector((0, 0, 1.95)), b)
+    return root
+
+
 # ───────────────────────────────────────────── gear and projectiles
 def gear():
     rock = boulder("proj_rock", 77, size=0.14, squash=0.85, moss=False, facets=14, subdiv=2,
@@ -873,7 +973,15 @@ def gear():
     paint(glove, lambda co, n, *_: mix(C("#c8c4ba"), C("#fbfaf6"), 0.5 + 0.5 * n.z))
     move_to(glove, OUTC)
     glove["role"] = "gear"
-    return [rock, banana, glove]
+    from hard import block as _block
+    cube = _block("proj_cube", 0.3, 0.3, 0.3, C("#6affd8"), bevel=0.03)
+    cube.data.transform(Matrix.Translation((0, 0, -0.15)))
+    paint(cube, lambda co, n, *_: mix(C("#6affd8"), C("#ffffff"), 0.35 * max(0, n.z)))
+    cube.data.materials.clear()
+    cube.data.materials.append(vtx_material("Glow", rough=1.0, emissive=True))
+    move_to(cube, OUTC)
+    cube["role"] = "gear"
+    return [rock, banana, glove, cube]
 
 
 monkey_root = monkey()
@@ -888,9 +996,11 @@ drone_root = drone()
 orbital_root = orbital()
 moon_root = moon()
 bh_root = blackhole()
+printer_root = printer()
+paradox_root = paradox()
 gear()
 
-for prefix in ("monkey_", "gorilla_", "trebuchet_", "knight_", "steam_", "factory_", "turret_", "jet_", "drone_", "orbital_", "moon_", "blackhole_", "proj_"):
+for prefix in ("monkey_", "gorilla_", "trebuchet_", "knight_", "steam_", "factory_", "turret_", "jet_", "drone_", "orbital_", "moon_", "blackhole_", "printer_", "paradox_", "proj_"):
     parts = [o for o in OUTC.objects if o.type == "MESH" and o.name.startswith(prefix)]
     bake_ao(parts, samples=160, distance=0.22, strength=0.45, ground=False)
 export_glb(OUT, objs=list(OUTC.objects))
@@ -930,4 +1040,6 @@ if PREVIEW:
     moon_root.scale = (0.5, 0.5, 0.5)
     bh_root.location = (3.4, 5.0, 0.0)
     bh_root.scale = (0.6, 0.6, 0.6)
+    printer_root.location = (-1.2, 1.0, 0.0)
+    paradox_root.location = (1.0, 1.4, 0.0)
     preview(PREVIEW.replace(".png", "_fly.png"), eye=(0.0, -6.0, 2.6), target=(0.2, 0.5, 1.5), lens=45, size=(960, 600), sun_dir=(-0.5, -0.6, 0.6), world_rgb=(0.35, 0.3, 0.45), sun=3.0)

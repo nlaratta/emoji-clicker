@@ -16,7 +16,9 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: BASE,
-    trace: 'retain-on-failure',
+    // Trace only on a retry: recording every action stalls the software-rendered
+    // scene enough to break timing-sensitive tests (combos).
+    trace: 'on-first-retry',
     launchOptions: { args: swiftshader },
   },
   projects: [

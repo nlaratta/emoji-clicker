@@ -45,7 +45,7 @@ const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enab
     f.game.state.nextGoldenAt = f.game.state.time + 0.1;
     f.game.state.nextWeakSpotAt = f.game.state.time + 0.1;
   });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(5000);
   const box = (await page.locator('.stage').boundingBox())!;
   for (let i = 0; i < 9; i++) {
     await page.mouse.click(box.x + box.width / 2 + (i % 3 - 1) * 40, box.y + box.height * 0.46 + (i % 2) * 30);
@@ -61,9 +61,16 @@ const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enab
   const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
   await open(page);
   await page.addStyleTag({ content: '.hud, .panel, .toasts { display: none !important; } #app { grid-template-columns: 1fr !important; }' });
+  // Each era with its own crew (and everything before it) at work.
+  const crews = [['monkey', 'gorilla'], ['trebuchet', 'knight'], ['steam', 'factory'], ['turret', 'jet'], ['drone', 'orbital'], ['moon', 'blackhole'], ['printer', 'paradox']];
   for (let era = 0; era < 7; era++) {
-    await page.evaluate((e) => (window as any).freakmoji.dev.era(e), era);
-    await page.waitForTimeout(1800);
+    await page.evaluate(([e, ids]) => {
+      const f = (window as any).freakmoji;
+      f.dev.era(e);
+      for (const id of ids as string[]) f.game.state.producers[id] = 4;
+      f.game.refresh();
+    }, [era, crews.slice(0, era + 1).flat()] as const);
+    await page.waitForTimeout(4500);
     await page.screenshot({ path: `${TILES}/era-${era + 1}.png` });
   }
   await page.close();
@@ -81,7 +88,7 @@ const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enab
     f.game.refresh();
     f.dev.gasps(2.5e11);
   });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(5000);
   await page.screenshot({ path: 'docs/mobile.jpg', type: 'jpeg', quality: 86 });
   await page.close();
 }

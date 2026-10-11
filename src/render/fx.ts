@@ -117,7 +117,7 @@ export class ScreenFX {
   private glitchHold = 0;
   prefs: MotionPrefs = { shake: 1, reducedMotion: false, flashes: true };
   /** Persistent baselines set by the era / state. */
-  baseAberration = 0.004;
+  baseAberration = 0.0015;
   baseGlitch = 0;
   saturation = 1;
   tint = new THREE.Vector4(1, 1, 1, 0);
@@ -142,7 +142,7 @@ export class ScreenFX {
 
   aberration(x: number): void {
     if (this.prefs.reducedMotion) return;
-    this.ab = Math.min(0.012, this.ab + x * 1.2);
+    this.ab = Math.min(0.006, this.ab + x * 0.6);
   }
 
   glitchBurst(amount: number, hold = 0.3): void {

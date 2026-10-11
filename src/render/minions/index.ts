@@ -6,7 +6,7 @@ import { loadModel } from '../assets';
 import { SpriteMinions, type ImpactFn } from './legacy';
 import { Crowd, GearPool, gearFromGltf, rigsFromGltf, type Rig } from './rig';
 import { Creature, type Circle, type Env, type Spot } from './creatures';
-import { BlackHoleEngine, Drone, Factory, HoleFx, Jet, Knight, MoonCannon, Orbital, Trebuchet, Turret, type Unit } from './machines';
+import { BlackHoleEngine, Drone, Factory, HoleFx, Jet, Knight, MoonCannon, Orbital, Paradox, Printer, Trebuchet, Turret, type Unit } from './machines';
 import layout from './layout.json';
 
 const STAR = new THREE.Vector3(0, 1.25, 0);
@@ -23,9 +23,9 @@ interface KindDef {
   color: THREE.Color;
   make(rig: Rig, index: number): Unit;
   /** 'touch': hits where it stands; 'throw': a rock from the hands; 'sling': a boulder from the muzzle. */
-  attack: 'touch' | 'throw' | 'sling' | 'shoot' | 'strafe' | 'zap' | 'beam' | 'lob' | 'pull';
+  attack: 'touch' | 'throw' | 'sling' | 'shoot' | 'strafe' | 'zap' | 'beam' | 'lob' | 'pull' | 'print' | 'paradox';
   /** Projectile gear for slung attacks. */
-  ammo?: 'rock' | 'glove';
+  ammo?: 'rock' | 'glove' | 'cube';
   strength: number;
   /** Contact-shadow radius. */
   shadow: number;
@@ -43,6 +43,8 @@ const KINDS: Record<string, KindDef> = {
   orbital: { max: 4, rate: 0.5, color: new THREE.Color(0xff4060), make: (r, i) => new Orbital(r, i), attack: 'beam', strength: 0.7, shadow: 0 },
   moon: { max: 1, rate: 0.45, color: new THREE.Color(0xfff0b0), make: (r) => new MoonCannon(r), attack: 'lob', strength: 1.2, shadow: 0 },
   blackhole: { max: 1, rate: 2.5, color: new THREE.Color(0xa060ff), make: (r, i) => new BlackHoleEngine(r, slot(layout.blackhole[i])), attack: 'pull', strength: 0.35, shadow: 2.0 },
+  printer: { max: 3, rate: 1.2, color: new THREE.Color(0x9affe0), make: (r, i) => new Printer(r, slot(layout.printer[i])), attack: 'print', ammo: 'cube', strength: 0.4, shadow: 1.0 },
+  paradox: { max: 4, rate: 1.0, color: new THREE.Color(0x80ffd0), make: (r, i) => new Paradox(r, slot(layout.paradox[i])), attack: 'paradox', strength: 0.5, shadow: 0.9 },
   factory: { max: 2, rate: 0.6, color: new THREE.Color(0xffd0a0), make: (r, i) => new Factory(r, slot(layout.factory[i])), attack: 'sling', ammo: 'glove', strength: 0.5, shadow: 0 },
 };
 
@@ -52,7 +54,7 @@ export interface MinionWorld {
 }
 
 interface Flight {
-  gear: 'rock' | 'glove';
+  gear: 'rock' | 'glove' | 'cube';
   from: THREE.Vector3;
   to: THREE.Vector3;
   t: number;
@@ -79,6 +81,7 @@ interface Pack {
 const tmpM = new THREE.Matrix4();
 const tmpV = new THREE.Vector3();
 const tmpV2 = new THREE.Vector3();
+const UP_Y = new THREE.Vector3(0, 1, 0);
 const tmpQ = new THREE.Quaternion();
 const tmpE = new THREE.Euler();
 const tmpS = new THREE.Vector3();
@@ -102,6 +105,7 @@ export class Minions {
   private owned: Record<string, number> = {};
   private rocks: GearPool | null = null;
   private gloves: GearPool | null = null;
+  private cubes: GearPool | null = null;
   private bananas: GearPool | null = null;
   private flights: Flight[] = [];
   private shadows: THREE.InstancedMesh;
@@ -145,6 +149,11 @@ export class Minions {
         if (rock) {
           this.rocks = new GearPool(rock, 48);
           this.group.add(this.rocks.group);
+        }
+        const cube = gear.get('proj_cube');
+        if (cube) {
+          this.cubes = new GearPool(cube, 16);
+          this.group.add(this.cubes.group);
         }
         const glove = gear.get('proj_glove');
         if (glove) {
@@ -430,6 +439,39 @@ export class Minions {
       });
       return;
     }
+    if (def.attack === 'print') {
+      u.attack(() => {
+        const from = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone();
+        this.particles.flash(from, def.color, 0.7, 0.15, 3);
+        this.launch(from, this.hitPoint(u, 1.3 + Math.random() * 0.4, new THREE.Vector3()), 0.75, 1.6, 1, def);
+      });
+      return;
+    }
+    if (def.attack === 'paradox') {
+      u.attack(() => {
+        // Effect before cause: the hit lands now...
+        const engine = u.muzzle ? u.muzzle(new THREE.Vector3()) : STAR.clone();
+        const at = this.hitPoint(u, 1.25 + (Math.random() - 0.5) * 0.6, new THREE.Vector3());
+        const col = new THREE.Color().setHSL(0.45 + Math.random() * 0.4, 0.9, 0.7);
+        this.onImpact(at, def.strength, col);
+        this.particles.ring(at, col, 1.6, 0.35, 2.2);
+        // ...and its echo travels back to the engine, which then "fires".
+        const d = engine.clone().sub(at);
+        const travel = 0.45;
+        for (let i = 0; i < 3; i++) {
+          this.particles.glow.spawn({
+            x: at.x, y: at.y, z: at.z, vx: d.x / travel, vy: d.y / travel, vz: d.z / travel,
+            life: travel, size: 0.14 - i * 0.03, sizeEnd: 0.05, r: col.r * 3, g: col.g * 3, b: col.b * 3, shape: Shape.Spark, stretch: 0.06, delay: i * 0.04,
+          });
+        }
+        this.later(travel, () => {
+          this.particles.flash(engine, col, 1.4, 0.25, 3.5);
+          this.particles.ring(engine, col, 2.0, 0.4, 2);
+          if (u instanceof Paradox) u.glow = 1;
+        });
+      });
+      return;
+    }
     if (def.attack === 'throw') {
       u.attack(() => {
         const from = this.handPoint(pack, u as Creature);
@@ -552,6 +594,7 @@ export class Minions {
     };
     this.rocks?.begin();
     this.gloves?.begin();
+    this.cubes?.begin();
     this.bananas?.begin();
     for (const pack of this.packs.values()) {
       const crowd = pack.crowd;
@@ -574,12 +617,17 @@ export class Minions {
         } else if (u instanceof Trebuchet && u.ready && this.rocks) {
           // A boulder waits in the sling.
           this.rocks.add(tmpM.compose(u.muzzle(tmpV2), tmpQ.identity(), tmpS.set(2.2, 2.2, 2.2)));
+        } else if (u instanceof Printer && this.cubes && u.progress > 0.02) {
+          // The cube being printed, growing layer by layer on the plate.
+          const k = u.progress * u.spawn;
+          u.muzzle(tmpV2).y -= 0.15 * k;
+          this.cubes.add(tmpM.compose(tmpV2, tmpQ.setFromAxisAngle(UP_Y, u.yaw), tmpS.set(1.1, 1.1 * k, 1.1)));
         }
       }
       crowd.end();
     }
     for (const f of this.flights) {
-      const pool = f.gear === 'glove' ? this.gloves : this.rocks;
+      const pool = f.gear === 'glove' ? this.gloves : f.gear === 'cube' ? this.cubes : this.rocks;
       if (!pool) continue;
       let p: THREE.Vector3;
       if (f.hit) p = this.flightPos(f, tmpV);
@@ -599,6 +647,7 @@ export class Minions {
     }
     this.rocks?.end();
     this.gloves?.end();
+    this.cubes?.end();
     this.bananas?.end();
     sh.count = ns;
     sh.instanceMatrix.needsUpdate = true;

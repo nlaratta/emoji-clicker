@@ -71,7 +71,7 @@ pnpm dev        # http://localhost:5173
 
 ## Credits
 
-All art, models, textures and sound are generated in code. Emoji are drawn from your system's emoji font at runtime. Fonts: [Bungee](https://github.com/djrrb/Bungee) and [Bricolage Grotesque](https://github.com/ateliertriay/bricolage), both under the SIL Open Font License, bundled via Fontsource. Built with [Three.js](https://threejs.org/) (MIT) and [Vite](https://vite.dev/).
+The 3D eras, props and minions are procedural Blender models built by the scripts in `art/blender/`; the icons were illustrated with a locally run image model (Krea 2 Turbo) from the prompts in `art/icons/`; sound is synthesised in code. See [docs/art-direction.md](docs/art-direction.md). Fonts: [Bungee](https://github.com/djrrb/Bungee) and [Bricolage Grotesque](https://github.com/ateliertriay/bricolage), both under the SIL Open Font License, bundled via Fontsource. Built with [Three.js](https://threejs.org/) (MIT) and [Vite](https://vite.dev/).
 
 ## License
 

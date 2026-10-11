@@ -383,7 +383,7 @@ def plaza_tiles(name="plaza", radius=6.4, size=2.3, seed=3):
     """Fitted square concrete slabs (crisp joints) inside a radius."""
     rnd = random.Random(seed)
     parts = []
-    tones = [C("#4e5058"), C("#565860"), C("#4a4c54"), C("#5c5e66")]
+    tones = [C("#3e4048"), C("#464850"), C("#3a3c44"), C("#4c4e56")]
     n = int(radius / size) + 1
     for i in range(-n, n + 1):
         for j in range(-n, n + 1):

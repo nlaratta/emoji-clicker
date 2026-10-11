@@ -26,7 +26,7 @@ reset()
 args = argv()
 OUT, PREVIEW = args[0], (args[1] if len(args) > 1 else None)
 
-PLAZA = C("#4a4c54")
+PLAZA = C("#3c3e46")
 PLAZA_L = C("#9a9ca4")
 GROUT = C("#4e5058")
 SIDEWALK = C("#54565e")
@@ -68,7 +68,7 @@ T("plaza", plaza_tiles())
 # Three tiers so the skyline steps up: brick low-rise in front, mid-rise
 # offices behind, glass towers at the back.
 TIERS = {
-    "low": [(7, 5, 4, C("#7a4434"), "tank", 0.5), (6, 5, 3, C("#8a7a66"), "flat", 0.55), (8, 6, 5, C("#5a3a32"), "flat", 0.45)],
+    "low": [(7, 5, 4, C("#7a4434"), "tank", 0.62), (6, 5, 3, C("#8a7a66"), "flat", 0.66), (8, 6, 5, C("#5a3a32"), "flat", 0.6)],
     "mid": [(7, 6, 9, C("#4c5664"), "tank", 0.42), (6, 6, 11, C("#6a6458"), "flat", 0.5)],
     "tall": [(6, 6, 16, C("#2c3a52"), "spire", 0.55), (7, 6, 20, C("#283246"), "spire", 0.6), (6, 7, 14, C("#2c4a5a"), "flat", 0.5)],
 }

@@ -32,7 +32,7 @@ export function pool(color: THREE.Color, radius: number): THREE.Mesh {
     polygonOffsetFactor: -2,
     uniforms: { uColor: { value: color }, uFade: { value: 1 } },
     vertexShader: 'varying vec2 vP; void main(){ vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: `uniform vec3 uColor; uniform float uFade; varying vec2 vP; void main(){ float d = length(vP) / ${radius.toFixed(2)}; float k = pow(max(0.0, 1.0 - d), 2.2); gl_FragColor = vec4(uColor * k * 0.42 * uFade, 1.0); }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uFade; varying vec2 vP; void main(){ float d = length(vP) / ${radius.toFixed(2)}; float k = pow(max(0.0, 1.0 - d), 2.2); gl_FragColor = vec4(uColor * k * 0.62 * uFade, 1.0); }`,
   });
   const m = new THREE.Mesh(geo, mat);
   m.renderOrder = 1;
