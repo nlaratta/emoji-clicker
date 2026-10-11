@@ -174,6 +174,41 @@ test('era gate boss can be challenged and beaten', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Haymaker/ })).toBeVisible();
 });
 
+test('hiding the tab mid-fight abandons the boss and clears its shell', async ({ page }) => {
+  await boot(page);
+  await start(page);
+  await page.evaluate(() => {
+    const f = window.freakmoji;
+    f.dev.gasps(20_000);
+    (f.game as any).startBoss();
+    f.game.state.nextGoldenAt = f.game.state.time + 0.1;
+  });
+  await expect.poll(() => page.evaluate(() => (window as any).freakmoji.view.shell.active)).toBe(true);
+  const setVisibility = (state: string) =>
+    page.evaluate((v) => {
+      Object.defineProperty(document, 'visibilityState', { get: () => v, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, state);
+  await setVisibility('hidden');
+  await page.waitForTimeout(1300); // the hidden-tab interval drains the event queue
+  await page.evaluate(() => {
+    // The golden escapes while nobody is looking.
+    const s = window.freakmoji.game.state;
+    s.golden = null;
+    s.nextGoldenAt = s.time + 999;
+  });
+  await setVisibility('visible');
+  await page.waitForTimeout(300);
+  const v = await page.evaluate(() => {
+    const f = (window as any).freakmoji;
+    return { boss: f.game.state.boss, shell: f.view.shell.mesh.visible, golden: f.view.golden.root.visible };
+  });
+  expect(v.boss).toBeNull();
+  expect(v.shell).toBe(false);
+  expect(v.golden).toBe(false);
+  await expect(page.locator('.toast').filter({ hasText: 'Fight abandoned' })).toHaveCount(1);
+});
+
 test('collapsing a timeline grants Paranoia and resets the run', async ({ page }) => {
   await boot(page);
   await start(page);

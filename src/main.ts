@@ -22,6 +22,7 @@ const AUTOSAVE_EVERY = 10;
 
 let resetting = false;
 let hasLock = true;
+let bossAbandoned = false;
 
 const store: KVStore = {
   getItem: (k) => {
@@ -299,8 +300,13 @@ function react(events: GameEvent[]): void {
         } else announcer.say('Composure shattered!', true);
         break;
       case 'bossFail':
-        toasts.push('Composure held', 'Build up your gasps per second and try again in 15 seconds.', 'warn');
-        announcer.say('The boss kept its composure. Try again soon.', true);
+        if (bossAbandoned) {
+          bossAbandoned = false;
+          toasts.push('Fight abandoned', 'You left mid-fight, so the boss regained its composure. Challenge it again when ready.', 'warn', 6000);
+        } else {
+          toasts.push('Composure held', 'Build up your gasps per second and try again in 15 seconds.', 'warn');
+          announcer.say('The boss kept its composure. Try again soon.', true);
+        }
         break;
       case 'goldenSpawn':
         announcer.say('A golden Freakmoji appeared! Click it or press G.', true);
@@ -419,15 +425,14 @@ requestAnimationFrame(frame);
 setInterval(() => {
   if (document.visibilityState !== 'hidden') return;
   syncSim();
-  game.drainEvents();
+  // Still deliver events (toasts, achievements); visuals also reconcile from state.
+  react(game.drainEvents());
 }, 1000);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     // A boss fight can't be won (or lost) while nobody is watching.
-    if (started && game.abandonBoss()) {
-      toasts.push('Fight abandoned', 'You left mid-fight, so the boss regained its composure. Challenge it again when ready.', 'warn');
-    }
+    if (started && game.abandonBoss()) bossAbandoned = true;
     persist();
     audio.suspend();
   } else {

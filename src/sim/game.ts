@@ -60,7 +60,8 @@ const METER_PER_POKE = 0.004;
 const METER_DECAY = 0.06;
 const WEAK_SPOT_LIFE = 3.5;
 const WEAK_SPOT_COS = Math.cos(0.36);
-const GOLDEN_LIFE = 12;
+/** Base seconds a golden Freakmoji stays catchable. */
+export const GOLDEN_LIFE = 12;
 const BOSS_RETRY_DELAY = 15;
 const ACHIEVEMENT_INTERVAL = 1;
 

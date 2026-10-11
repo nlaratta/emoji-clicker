@@ -10,7 +10,7 @@ import { CameraRig, ScreenFX, type MotionPrefs } from './fx';
 import { Floaters, type FloatOpts } from './floaters';
 import { BossShell } from './bossShell';
 import { THEMES } from './themes';
-import type { Game } from '../sim/game';
+import { GOLDEN_LIFE, type Game } from '../sim/game';
 import type { GameEvent, HitRegion } from '../sim/events';
 import { WEAPONS, weaponFamily } from '../content/weapons';
 import { ERAS, FINAL_BOSS } from '../content/eras';
@@ -497,6 +497,7 @@ export class GameScene {
 
     if (s.era !== this.era && !this.world.transitioning) this.applyEraLook(s.era, true);
     this.minions.sync(s.producers);
+    this.reconcile(game);
 
     // Mood & state-driven presentation.
     const freaking = s.time < s.freakOutEnd;
@@ -607,6 +608,26 @@ export class GameScene {
     this.stage.render();
     this.floaters.update(dtReal);
     this.adaptQuality(dtReal);
+  }
+
+  /**
+   * Visuals started by one-shot events are re-derived from state every frame,
+   * so an event dropped while the tab was hidden can't leave a stale shell or
+   * a ghost golden Freakmoji behind.
+   */
+  private reconcile(game: Game): void {
+    const s = game.state;
+    if (!s.boss && this.shell.active) this.shell.end();
+    else if (s.boss && !this.shell.active) this.shell.begin((s.boss.final ? FINAL_BOSS : ERAS[s.boss.era].boss!).shell);
+    if (!s.golden) {
+      this.golden.root.visible = false;
+    } else if (!this.golden.root.visible || this.goldenSeed !== s.golden.seed) {
+      this.goldenSeed = s.golden.seed;
+      this.goldenLife = GOLDEN_LIFE * game.mods.goldenDuration;
+      this.goldenAge = Math.max(0, this.goldenLife - (s.golden.end - s.time));
+      this.golden.root.visible = true;
+    }
+    if (!s.charge) this.chargeFist.visible = false;
   }
 
   private applyThemeLights(): void {

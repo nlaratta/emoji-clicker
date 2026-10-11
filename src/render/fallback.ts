@@ -98,6 +98,15 @@ export class FallbackScene {
   }
 
   frame(dt: number, game: Game): void {
+    // Re-derive event-driven visuals from state (events can be dropped while hidden).
+    const st = game.state;
+    this.shellRing.style.display = st.boss ? 'block' : 'none';
+    if (!st.golden) this.golden.style.display = 'none';
+    else if (this.golden.style.display === 'none' || this.goldenSeed !== st.golden.seed) {
+      this.goldenSeed = st.golden.seed;
+      this.goldenAge = 0;
+      this.golden.style.display = 'block';
+    }
     this.squash = Math.max(0, this.squash - dt * 4);
     const q = Math.sin(this.squash * Math.PI) * 0.12;
     this.face.style.transform = `translate(-50%, -55%) scale(${1 + q}, ${1 - q})`;
