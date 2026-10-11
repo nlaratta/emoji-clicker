@@ -13,8 +13,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -23,22 +23,29 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
-      - name: Syntax-check scripts
-        run: for f in js/*.js; do node --check "$f"; done
-      - name: Check local asset references resolve
-        run: |
-          for ref in $(grep -ohE '(src|href)="[^"#:]+"' index.html | cut -d'"' -f2) \
-                     $(grep -ohE "url\('[^':]+'\)" css/*.css | sed -E "s/url\('\.\.\/(.*)'\)/\1/"); do
-            test -e "$ref" || { echo "missing: $ref"; exit 1; }
-          done
+          node-version: 24
+      - name: Enable pnpm (version pinned by packageManager)
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit, economy and persistence tests
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: End-to-end tests (production build under /emoji-clicker/)
+        run: pnpm e2e
+        env:
+          CI: 'true'
       - uses: actions/configure-pages@v6
         if: github.event_name != 'pull_request'
-      - name: Package site
-        if: github.event_name != 'pull_request'
-        run: mkdir _site && cp -r index.html css js assets _site/
       - uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request'
+        with:
+          path: dist
 
   deploy:
     if: github.event_name != 'pull_request'
