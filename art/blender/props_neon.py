@@ -291,7 +291,8 @@ def arcade_front(name, w=7.0, d=5.0, floors=3, body=None, accent=None, seed=0):
             parts.append(face(block(f"{name}_aw{side}_{b}", sw / bays * 0.84, 0.55, 0.08, rnd.choice((C("#3a2a4a"), C("#2a3a4a"), C("#4a2a2a"))), bevel=0.02), u, 1.8))
         for f in range(1, floors):
             z = 2.4 + (f - 1) * fh + 0.35
-            ribbon = block(f"{name}_rib{side}_{f}", sw * 0.88, 0.05, 0.7, GLASS, bevel=0)
+            ribbon = pane(f"{name}_rib{side}_{f}", sw * 0.88, 0.7, GLASS)
+            ribbon.data.transform(Matrix.Translation((0, -0.03, 0)))
             face(ribbon, 0, z)
             if rnd.random() < 0.5:
                 paint_solid(ribbon, mul(mix(CYAN, C("#ffffff"), 0.5), 0.55 + rnd.random() * 0.3))
@@ -318,6 +319,16 @@ def arcade_front(name, w=7.0, d=5.0, floors=3, body=None, accent=None, seed=0):
     parts.append(block(f"{name}_signback", w * 0.64, 0.1, 1.3, C("#14141c"), bevel=0.02, at=(sx, -d / 2 + 0.5, h + 0.1)))
     ob = join(parts + lit, name)
     ob["col"] = max(w, d) * 0.55
+    return ob
+
+
+def pane(name, w, h, col):
+    """A flat panel facing -y (front), resting on z=0."""
+    bm = bmesh.new()
+    vs = [bm.verts.new(p) for p in ((-w / 2, 0, 0), (w / 2, 0, 0), (w / 2, 0, h), (-w / 2, 0, h))]
+    bm.faces.new(vs)
+    ob = mesh_obj(bm, name, smooth=False)
+    paint_solid(ob, col)
     return ob
 
 
@@ -359,8 +370,8 @@ def megatower(name, w=6.0, d=6.0, h=40.0, body=None, accent=None, seed=0, tiers=
             for side in range(4):
                 sw = tw if side % 2 == 0 else td
                 depth = (td if side % 2 == 0 else tw) / 2
-                rib = block(f"{name}_r{t}_{int(z*10)}_{side}", sw * 0.86, 0.05, 0.75, GLASS, bevel=0)
-                rib.data.transform(Matrix.Translation((0, -depth, z)))
+                rib = pane(f"{name}_r{t}_{int(z*10)}_{side}", sw * 0.86, 0.75, GLASS)
+                rib.data.transform(Matrix.Translation((0, -depth - 0.03, z)))
                 rib.data.transform(Matrix.Rotation(side * math.pi / 2, 4, "Z"))
                 if rnd.random() < 0.42:
                     paint_solid(rib, mul(mix(rnd.choice((CYAN, C("#ffffff"), AMBER)), C("#ffffff"), 0.4), 0.45 + rnd.random() * 0.35))

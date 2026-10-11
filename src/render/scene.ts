@@ -78,6 +78,7 @@ export class GameScene {
 
     const scene = this.stage.scene;
     this.world = new World({ particles: this.particles, atlas: this.atlas, lite: false }, startEra);
+    this.world.precompile = (root) => this.stage.renderer.compileAsync(root, this.stage.camera, scene);
     scene.add(this.world.group);
 
     this.star = new Freakmoji();
@@ -132,6 +133,7 @@ export class GameScene {
       heightAt: (x, z) => this.world.heightAt(x, z),
       kit: () => this.world.kit,
     });
+    this.minions.precompile = (root) => this.stage.renderer.compileAsync(root, this.stage.camera, this.stage.scene);
     scene.add(this.minions.group);
 
     this.rig = new CameraRig(this.stage.camera);
@@ -156,7 +158,8 @@ export class GameScene {
     this.stage.setTier(tier);
     this.particles.setDensity(tier === 'low' ? 0.4 : tier === 'medium' ? 0.75 : 1);
     this.minions.activity = tier === 'low' ? 0.5 : 1;
-    this.world.setQuality({ grass: tier === 'high' ? 1 : tier === 'medium' ? 0.55 : 0.2, shadows: tier !== 'low' });
+    this.minions.setCrewScale(tier === 'low' ? 0.5 : 1);
+    this.world.setQuality({ grass: tier === 'high' ? 1 : tier === 'medium' ? 0.55 : 0, shadows: tier !== 'low', lite: tier === 'low' });
     this.minions.setShadows(tier !== 'low');
   }
 

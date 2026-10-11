@@ -8,7 +8,7 @@ import os
 
 import bpy
 
-from kit import bake_ao, collection, export_glb, move_to, preview
+from kit import bake_ao, collection, export_glb, move_to, preview  # noqa: F401
 from terrain import G, anchor, build_grassmap, build_terrain
 
 LAYOUT = json.load(open(os.path.join(os.path.dirname(__file__), "..", "..", "src", "render", "minions", "layout.json")))
@@ -124,6 +124,47 @@ class Composer:
         move_to(gmap, self.world)
         export_glb(out, objs=list(self.world.objects))
         if preview_path:
+            # Previews first: the lite export below decimates meshes in place.
             eye, target = cam or (G(0, 9.3, 2.95), G(0, 0, 1.15))
             preview(preview_path, eye=eye, target=target, lens=34.6, size=(960, 600), sun_dir=tuple(G(*sun_dir)), world_rgb=world_rgb, sun=3.0)
             preview(preview_path.replace(".png", "_wide.png"), eye=G(0, 26, 16), target=G(0, -6, 0), lens=30, size=(960, 600), sun_dir=tuple(G(*sun_dir)), world_rgb=world_rgb, sun=3.0)
+        export_lite(list(self.world.objects), out)
+
+
+# Organic shapes that survive decimation; architecture, tiles and the dais never do.
+ORGANIC = ("tree", "oak", "fir", "pine", "conifer", "poplar", "bush", "fern", "canopy", "rock", "boulder", "pebble", "mesa", "volcano",
+           "terrain", "cliff", "planter", "crystal", "cry_", "spire", "isle", "island", "underside", "planet", "rubble", "chunks", "ore",
+           "scrap", "frag", "mammoth", "dragon", "float")
+
+
+def export_lite(objs, out, budget=1000, floor=0.15):
+    """Export a low-tier variant next to `out` (name.lo.glb): heavy organic
+    meshes (trees, rocks, terrain...) are decimated toward `budget` triangles,
+    everything hard-surface is left exactly as it is. Mesh data is shared by
+    linked duplicates, so each unique mesh is decimated once and remapped."""
+    import bpy
+    dg = bpy.context.evaluated_depsgraph_get()
+    done = set()
+    saved = 0
+    for ob in objs:
+        if ob.type != "MESH" or ob.data in done or ob.get("role") == "grassmap":
+            continue
+        name = (ob.name + " " + ob.data.name).lower()
+        if not any(k in name for k in ORGANIC):
+            continue
+        me = ob.data
+        tris = sum(len(p.vertices) - 2 for p in me.polygons)
+        if tris <= budget:
+            continue
+        ratio = max(floor, budget / tris) if "terrain" not in name else 0.45
+        mod = ob.modifiers.new("lite", "DECIMATE")
+        mod.ratio = ratio
+        dg.update()
+        new = bpy.data.meshes.new_from_object(ob.evaluated_get(dg))
+        ob.modifiers.remove(mod)
+        me.user_remap(new)
+        done.add(new)
+        saved += tris - sum(len(p.vertices) - 2 for p in new.polygons)
+    lite = out.replace(".glb", ".lo.glb")
+    export_glb(lite, objs=objs)
+    print(f"lite: -{saved} tris -> {lite}")

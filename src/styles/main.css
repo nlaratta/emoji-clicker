@@ -852,6 +852,11 @@ kbd {
   pointer-events: none;
 }
 
+/* During a boss fight the bar owns the top of the arena; toasts queue below it. */
+.stage:has(.bossbar:not([hidden])) .toasts {
+  top: 300px;
+}
+
 .toast {
   display: grid;
   grid-template-columns: 1fr;

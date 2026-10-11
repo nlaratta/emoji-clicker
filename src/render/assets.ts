@@ -18,6 +18,11 @@ export function hasModel(key: string): boolean {
   return byKey.has(key);
 }
 
+/** Drop a parsed model from the cache once it has been consumed (kits take ownership of their meshes). */
+export function forgetModel(key: string): void {
+  cache.delete(key);
+}
+
 export function loadModel(key: string): Promise<GLTF> {
   let p = cache.get(key);
   if (!p) {

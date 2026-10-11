@@ -364,3 +364,8 @@ if PREVIEW:
             sun_dir=tuple(G(-0.55, 0.45, 0.6)), world_rgb=(0.62, 0.45, 0.5), sun=3.0)
     preview(PREVIEW.replace(".png", "_wide.png"), eye=G(0, 26, 16), target=G(0, -6, 0), lens=30, size=(960, 600),
             sun_dir=tuple(G(-0.55, 0.45, 0.6)), world_rgb=(0.62, 0.45, 0.5), sun=3.0)
+
+# The low-tier variant (decimated trees, rocks and terrain).
+from compose import export_lite  # noqa: E402
+
+export_lite(list(world.objects), OUT)

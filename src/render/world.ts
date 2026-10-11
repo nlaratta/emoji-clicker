@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { THEMES, ThemeState } from './themes';
 import { buildEraProps, type EraProps, type PropContext } from './eraProps';
 import { EraKit, type KitQuality } from './eraKit';
-import { hasModel, loadModel } from './assets';
+import { forgetModel, hasModel, loadModel } from './assets';
 import { attachEraScript, type EraScript } from './eras/index';
 
 const NOISE = /* glsl */ `
@@ -202,6 +202,9 @@ const revealRadius = (k: number): number => REVEAL_MAX * Math.pow(k, 2.1);
  * swap in with a reveal ring sweeping out from the star; eras still on the
  * procedural props use the legacy ground and platform.
  */
+/** Practical lights in the scene at any time (constant, so shaders never recompile). */
+const LIGHT_POOL = 4;
+
 export class World {
   readonly group = new THREE.Group();
   readonly theme: ThemeState;
@@ -218,6 +221,8 @@ export class World {
   private kits: (EraKit | null)[] = [];
   private scripts: (EraScript | null)[] = [];
   private loading = new Set<number>();
+  /** Which model each loaded kit came from (full or lite variant). */
+  private kitKeys: (string | null)[] = [];
   private ctx: PropContext;
   private quality: KitQuality = { grass: 1, shadows: true };
   era = 0;
@@ -229,12 +234,21 @@ export class World {
   private seam = new THREE.Color();
   /** Fired when an era's kit finishes loading (so minions can re-plan). */
   onKitReady: ((era: number) => void) | null = null;
+  /** Compiles a subtree's shaders ahead of time (set by the scene; avoids a hitch at reveal). */
+  precompile: ((root: THREE.Object3D) => Promise<unknown>) | null = null;
+  /** Fixed pool of practical lights, fed from the visible kits' light descriptions. */
+  private readonly lightPool: THREE.PointLight[] = [];
 
   constructor(ctx: PropContext, startEra: number) {
     this.ctx = ctx;
     this.era = startEra;
     this.fromEra = startEra;
     this.theme = new ThemeState(THEMES[startEra]);
+    for (let i = 0; i < LIGHT_POOL; i++) {
+      const l = new THREE.PointLight(0xffffff, 0, 8, 1.6);
+      this.lightPool.push(l);
+      this.group.add(l);
+    }
 
     this.skyU = {
       uTop: { value: new THREE.Color() }, uHorizon: { value: new THREE.Color() }, uBottom: { value: new THREE.Color() },
@@ -330,12 +344,41 @@ export class World {
   requestKit(era: number): void {
     if (era < 0 || era >= THEMES.length || this.kits[era] || this.loading.has(era) || !hasModel(`era${era}`)) return;
     this.loading.add(era);
-    loadModel(`era${era}`)
+    // Deferred a tick: the quality tier is applied right after construction
+    // and decides which variant (full or lite) to fetch.
+    queueMicrotask(() => this.loadKit(era));
+  }
+
+  /** The kit variant for the current tier. */
+  private kitKeyFor(era: number): string {
+    const lite = `era${era}.lo`;
+    return this.quality.lite && hasModel(lite) ? lite : `era${era}`;
+  }
+
+  private loadKit(era: number): void {
+    const key = this.kitKeyFor(era);
+    loadModel(key)
       .then((gltf) => {
+        forgetModel(key);
+        const old = this.kits[era];
         const kit = new EraKit(gltf, this.quality);
+        this.kitKeys[era] = key;
+        if (old) {
+          // A tier change swapped variants: replace in place, keep the era's state.
+          this.group.remove(old.group);
+          old.dispose();
+          this.kits[era] = kit;
+          this.scripts[era] = attachEraScript(era, kit, this.ctx);
+          this.group.add(kit.group);
+          void this.precompile?.(kit.group);
+          this.syncKits();
+          this.onKitReady?.(era);
+          return;
+        }
         this.kits[era] = kit;
         this.scripts[era] = attachEraScript(era, kit, this.ctx);
         this.group.add(kit.group);
+        void this.precompile?.(kit.group);
         // Arriving late: if it's the current era, sweep it in over the legacy look.
         if (era === this.era) {
           if (this.transition >= 1) {
@@ -351,11 +394,19 @@ export class World {
   }
 
   setQuality(q: KitQuality): void {
+    const liteChanged = !!q.lite !== !!this.quality.lite;
     this.quality = q;
     for (const k of this.kits) {
       k?.setGrassDensity(q.grass);
       k?.setShadows(q.shadows);
     }
+    if (!liteChanged) return;
+    // Swap loaded kits to the other variant (each keeps showing until its replacement is ready).
+    this.kits.forEach((k, era) => {
+      if (!k || this.loading.has(era) || this.kitKeys[era] === this.kitKeyFor(era)) return;
+      this.loading.add(era);
+      this.loadKit(era);
+    });
   }
 
   /** Begin the morph into a new era. */
@@ -390,6 +441,25 @@ export class World {
     const R = this.transition < 1 ? revealRadius(this.transition) : Infinity;
     const k = r < R ? this.kits[this.era] : this.kits[this.fromEra];
     return k ? k.height(x, z) : this.kits[this.era]?.height(x, z) ?? 0;
+  }
+
+  /** Copy the brightest practical lights of the visible kits into the fixed pool. */
+  private feedLights(): void {
+    const cands: THREE.PointLight[] = [];
+    for (const k of this.kits) if (k?.group.visible) for (const { light } of k.lights) if (light.intensity > 0.01) cands.push(light);
+    cands.sort((a, b) => b.intensity - a.intensity);
+    this.lightPool.forEach((p, i) => {
+      const src = cands[i];
+      if (!src) {
+        p.intensity = 0;
+        return;
+      }
+      p.position.copy(src.position);
+      p.color.copy(src.color);
+      p.intensity = src.intensity;
+      p.distance = src.distance;
+      p.decay = src.decay;
+    });
   }
 
   /** Platform visibility (cosmic eras float on an asteroid instead). */
@@ -486,5 +556,6 @@ export class World {
       const presence = i === this.era ? (this.transition >= 1 ? 1 : this.transition) : 1 - this.transition;
       s.update(dt, this.time, presence);
     });
+    this.feedLights();
   }
 }

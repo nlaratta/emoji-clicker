@@ -14,8 +14,14 @@ KITS=("$@")
 mkdir -p art/previews art/.raw src/assets/models
 for kit in "${KITS[@]}"; do
   echo "── $kit"
+  rm -f "art/.raw/$kit.lo.glb"
   "$BLENDER" -b --factory-startup -P "art/blender/$kit.py" -- "art/.raw/$kit.glb" "art/previews/$kit.png" 2>&1 \
-    | grep -E "Error|Traceback|exported|^  File" || true
+    | grep -E "Error|Traceback|exported|lite:|^  File" || true
   pnpm exec gltfpack -i "art/.raw/$kit.glb" -o "src/assets/models/$kit.glb" -cc -kn -ke -km -kv -vp 16 -vn 8 -vc 10
   ls -la "src/assets/models/$kit.glb" | awk '{printf "   %s  %.0f KB\n", $9, $5/1024}'
+  # Era kits also export a low-tier variant (organic meshes decimated in Blender).
+  if [ -f "art/.raw/$kit.lo.glb" ]; then
+    pnpm exec gltfpack -i "art/.raw/$kit.lo.glb" -o "src/assets/models/$kit.lo.glb" -cc -kn -ke -km -kv -vp 16 -vn 8 -vc 10
+    ls -la "src/assets/models/$kit.lo.glb" | awk '{printf "   %s  %.0f KB\n", $9, $5/1024}'
+  fi
 done

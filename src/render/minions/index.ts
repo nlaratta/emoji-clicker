@@ -118,6 +118,17 @@ export class Minions {
   frenzy = 1;
   /** Global visual activity scale (quality). */
   activity = 1;
+  /** Compiles a subtree's shaders ahead of time (set by the scene). */
+  precompile: ((root: THREE.Object3D) => Promise<unknown>) | null = null;
+  /** Share of each type's on-screen crew to show (quality; production is unaffected). */
+  private crewScale = 1;
+
+  /** Show a smaller crew on the low tier. */
+  setCrewScale(k: number): void {
+    if (k === this.crewScale) return;
+    this.crewScale = k;
+    this.sync(this.owned, true);
+  }
 
   constructor(atlas: EmojiAtlas, fly: FlyingEmoji, particles: Particles, onImpact: ImpactFn, world: MinionWorld) {
     this.sprites = new SpriteMinions(atlas, fly, particles, onImpact);
@@ -168,6 +179,8 @@ export class Minions {
         this.group.add(this.hole.group);
         this.rigs = rigs;
         this.sync(this.owned, true);
+        // Every crew's shaders up front, so a new hire never stalls a frame.
+        void this.precompile?.(this.group);
       })
       .catch((err) => console.warn('minion models failed to load', err));
   }
@@ -184,7 +197,7 @@ export class Minions {
     this.refreshSpots();
     for (const [id, pack] of this.packs) {
       const rig = this.rigs.get(id)!;
-      const want = Math.min(pack.def.max, producers[id] ?? 0);
+      const want = Math.min(Math.max(1, Math.ceil(pack.def.max * this.crewScale)), producers[id] ?? 0);
       const bulk = want - pack.units.length > 1;
       while (pack.units.length < want) pack.units.push(this.spawn(pack, rig, settle || bulk || this.time < 2));
       while (pack.units.length > want) pack.units.pop()!.release();

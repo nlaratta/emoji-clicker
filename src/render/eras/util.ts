@@ -14,11 +14,15 @@ export function emitter(rate: number, emit: () => void): (dt: number, scale?: nu
   };
 }
 
-/** A warm flickering practical light attached to the kit. */
+/**
+ * A practical light (fire, lamp, crystal) for the kit. It's a description,
+ * not a scene light: the World feeds the brightest ones from visible kits
+ * into a fixed pool, so the scene's light count never changes (which would
+ * recompile every lit shader mid-transition).
+ */
 export function fireLight(kit: EraKit, at: THREE.Vector3, color = 0xff8a3a, intensity = 7, distance = 9): THREE.PointLight {
   const light = new THREE.PointLight(color, intensity, distance, 1.6);
   light.position.copy(at).add(new THREE.Vector3(0, 0.55, 0));
-  kit.group.add(light);
   kit.lights.push({ light, base: intensity });
   return light;
 }

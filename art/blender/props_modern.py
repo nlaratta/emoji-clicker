@@ -77,6 +77,17 @@ GLASS = C("#1a2234")
 ROOF = C("#3a3a42")
 
 
+def pane(name, w, h, col):
+    """A flat window pane facing -y (front), resting on z=0: two triangles
+    where a box would spend twelve on sides nobody sees."""
+    bm = bmesh.new()
+    vs = [bm.verts.new(p) for p in ((-w / 2, 0, 0), (w / 2, 0, 0), (w / 2, 0, h), (-w / 2, 0, h))]
+    bm.faces.new(vs)
+    ob = mesh_obj(bm, name, smooth=False)
+    paint_solid(ob, col)
+    return ob
+
+
 def parapet(name, w, d, h, z, col, t=0.22):
     """A hollow rooftop parapet (four walls), so the roof itself shows."""
     return [
@@ -113,7 +124,8 @@ def tower(name, w=6.0, d=6.0, floors=12, floor_h=1.25, body=None, frame=None, li
             return ob
 
         # Street level: one long storefront window and an awning over it.
-        shop = block(f"{name}_shop{side}", sw * 0.86, 0.08, shop_h * 0.62, mix(WINDOW_WARM, C("#ffffff"), 0.15), bevel=0)
+        shop = pane(f"{name}_shop{side}", sw * 0.86, shop_h * 0.62, mix(WINDOW_WARM, C("#ffffff"), 0.15))
+        shop.data.transform(Matrix.Translation((0, -0.03, 0)))
         lit_parts.append(face(shop, 0, 0.12))
         parts.append(face(block(f"{name}_awn{side}", sw * 0.9, 0.5, 0.12, awning, bevel=0.03), 0, shop_h * 0.78))
         # Upper floors: a grid of tall windows.
@@ -121,7 +133,8 @@ def tower(name, w=6.0, d=6.0, floors=12, floor_h=1.25, body=None, frame=None, li
             z = shop_h + (f - 1) * floor_h + floor_h * 0.2
             for c in range(cols):
                 u = -sw / 2 + (c + 0.5) * pitch
-                win = block(f"{name}_w{side}_{f}_{c}", pitch * 0.56, 0.06, floor_h * 0.62, GLASS, bevel=0)
+                win = pane(f"{name}_w{side}_{f}_{c}", pitch * 0.56, floor_h * 0.62, GLASS)
+                win.data.transform(Matrix.Translation((0, -0.03, 0)))
                 face(win, u, z)
                 if rnd.random() < lit:
                     paint_solid(win, (WINDOW_WARM if rnd.random() < warm else WINDOW_COOL))

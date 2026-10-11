@@ -32,6 +32,8 @@ const HF_N = Math.round((HF_HALF * 2) / HF_RES) + 1;
 export interface KitQuality {
   grass: number;
   shadows: boolean;
+  /** Use the simplified kit variants (eraN.lo.glb) on the low tier. */
+  lite?: boolean;
 }
 
 /** Read any (possibly interleaved / normalized) attribute into plain floats. */
