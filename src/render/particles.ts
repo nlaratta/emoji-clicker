@@ -124,9 +124,18 @@ export class ParticlePool {
   /** Fraction of spawns to keep (lowered on weak devices). */
   density = 1;
   private skip = 0;
+  /** Slots in use: the ring wraps here (lowered on weak devices). */
+  private limit: number;
+  /** Highest slot written + 1 since the ring last wrapped: everything past it is
+   *  known dead, so it isn't drawn (a calm scene draws a few hundred, not thousands). */
+  private used = 0;
+  /** Latest death time among particles written this lap of the ring, and the last one. */
+  private lapDeath = 0;
+  private prevLapDeath = 0;
 
   constructor(capacity: number, additive: boolean) {
     this.capacity = capacity;
+    this.limit = capacity;
     const base = new THREE.PlaneGeometry(1, 1);
     this.geo = new THREE.InstancedBufferGeometry();
     this.geo.index = base.index;
@@ -144,7 +153,7 @@ export class ParticlePool {
       time[i * 2 + 1] = 1;
     }
     for (const [k, v] of Object.entries(this.attrs)) this.geo.setAttribute(k, v);
-    this.geo.instanceCount = capacity;
+    this.geo.instanceCount = 0;
     const mat = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
       vertexShader: VERT,
@@ -162,6 +171,14 @@ export class ParticlePool {
     return this.uniforms.uTime.value;
   }
 
+  /** Cap how many particles can be alive at once (quality tier). */
+  setLimit(n: number): void {
+    this.limit = Math.max(64, Math.min(this.capacity, Math.floor(n)));
+    if (this.cursor >= this.limit) this.cursor = 0;
+    this.used = Math.min(this.used, this.limit);
+    this.geo.instanceCount = this.used;
+  }
+
   spawn(p: Spawn): void {
     if (this.density < 1) {
       this.skip += 1 - this.density;
@@ -171,7 +188,16 @@ export class ParticlePool {
       }
     }
     const i = this.cursor;
-    this.cursor = (this.cursor + 1) % this.capacity;
+    this.cursor = (this.cursor + 1) % this.limit;
+    if (this.cursor === 0) {
+      this.prevLapDeath = this.lapDeath;
+      this.lapDeath = 0;
+    }
+    if (i >= this.used) {
+      this.used = i + 1;
+      this.geo.instanceCount = this.used;
+    }
+    this.lapDeath = Math.max(this.lapDeath, this.uniforms.uTime.value + (p.delay ?? 0) + p.life);
     const A = this.attrs;
     const pos = A.aPos0.array as Float32Array;
     const vel = A.aVel.array as Float32Array;
@@ -203,6 +229,11 @@ export class ParticlePool {
 
   update(time: number): void {
     this.uniforms.uTime.value = time;
+    // Once the previous lap has burned out, only this lap's slots can be alive.
+    if (this.used > this.cursor && time > this.prevLapDeath) {
+      this.used = this.cursor;
+      this.geo.instanceCount = this.used;
+    }
     if (this.dirtyMax < 0) return;
     const start = this.dirtyMin;
     const count = this.dirtyMax - this.dirtyMin + 1;
@@ -236,6 +267,10 @@ export class Particles {
   setDensity(d: number): void {
     this.glow.density = d;
     this.matter.density = d;
+    // Fewer spawns need fewer slots: keep the pools (and what's drawn) in proportion.
+    const k = d >= 1 ? 1 : d >= 0.75 ? 0.6 : 0.3;
+    this.glow.setLimit(this.glow.capacity * k);
+    this.matter.setLimit(this.matter.capacity * k);
   }
 
   update(time: number): void {
