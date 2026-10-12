@@ -311,8 +311,9 @@ export class Freakmoji {
       this.handParts.push({ fingers, thumb });
     }
 
-    // Sweat drops for charge-ups.
-    const sweatMat = new THREE.MeshPhysicalMaterial({ color: 0x9fd8ff, roughness: 0.05, transmission: 0.2, clearcoat: 1, transparent: true, opacity: 0.9 });
+    // Sweat drops for charge-ups. No `transmission`: it would make three.js
+    // render the whole scene a second time every frame the drops are visible.
+    const sweatMat = new THREE.MeshPhysicalMaterial({ color: 0x9fd8ff, roughness: 0.05, clearcoat: 1, transparent: true, opacity: 0.82 });
     for (let i = 0; i < 3; i++) {
       const s = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 10), sweatMat);
       s.scale.y = 1.5;

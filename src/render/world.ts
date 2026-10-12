@@ -349,6 +349,16 @@ export class World {
     queueMicrotask(() => this.loadKit(era));
   }
 
+  /**
+   * Build an era's kit ahead of time, while the main thread is idle, so it
+   * is ready (and its shaders compiled) long before that era arrives.
+   */
+  private prefetch(era: number): void {
+    const go = (): void => this.requestKit(era);
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(go, { timeout: 4000 });
+    else setTimeout(go, 1000);
+  }
+
   /** The kit variant for the current tier. */
   private kitKeyFor(era: number): string {
     const lite = `era${era}.lo`;
@@ -360,8 +370,13 @@ export class World {
     loadModel(key)
       .then((gltf) => {
         forgetModel(key);
+        return EraKit.build(gltf, this.quality);
+      })
+      .then((kit) => {
+        // The tier may have changed while it was being built.
+        kit.setGrassDensity(this.quality.grass);
+        kit.setShadows(this.quality.shadows);
         const old = this.kits[era];
-        const kit = new EraKit(gltf, this.quality);
         this.kitKeys[era] = key;
         if (old) {
           // A tier change swapped variants: replace in place, keep the era's state.
@@ -386,6 +401,7 @@ export class World {
             this.transition = 0;
           }
           this.props[era]?.setPresence(0);
+          this.prefetch(era + 1);
         } else kit.group.visible = false;
         this.onKitReady?.(era);
       })
@@ -413,7 +429,9 @@ export class World {
   setEra(era: number, instant = false): void {
     if (era === this.era && this.transition >= 1) return;
     this.requestKit(era);
-    this.requestKit(era + 1);
+    // The next era's kit is prefetched once this one has settled, not now:
+    // building it during the reveal would cost frames at the showcase moment.
+    if (instant) this.prefetch(era + 1);
     this.fromEra = instant ? era : this.era;
     this.era = era;
     this.transition = instant ? 1 : 0;
@@ -539,6 +557,7 @@ export class World {
       if (k >= 1) {
         this.fromEra = this.era;
         this.syncKits();
+        this.prefetch(this.era + 1);
       }
     }
     this.syncLegacy();

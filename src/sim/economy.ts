@@ -1,4 +1,4 @@
-import { safe } from '../core/math';
+import { ECON_MAX, safe } from '../core/math';
 import { PRODUCERS, COST_GROWTH, type ProducerDef } from '../content/producers';
 import { UPGRADES } from '../content/upgrades';
 import { NODES, NODE_BY_ID, PARANOIA_BASE, unspentBonus } from '../content/paranoia';
@@ -54,9 +54,15 @@ export function maxAffordable(p: ProducerDef, owned: number, m: Modifiers, bank:
   const first = p.baseCost * m.producerCostMult * Math.pow(r, owned);
   if (!(bank >= first)) return 0;
   let n = Math.floor(Math.log((bank * (r - 1)) / first + 1) / Math.log(r));
-  // Guard against floating-point drift at the boundary.
-  while (n > 0 && producerCost(p, owned, m, n) > bank) n--;
-  while (producerCost(p, owned, m, n + 1) <= bank) n++;
+  // Guard against floating-point drift at the boundary. Prices clamp at
+  // ECON_MAX, so a clamped price never proves a purchase affordable (with the
+  // bank also clamped there, the search would otherwise never end).
+  const affordable = (k: number): boolean => {
+    const c = producerCost(p, owned, m, k);
+    return c <= bank && c < ECON_MAX;
+  };
+  while (n > 0 && !affordable(n)) n--;
+  while (n < 100_000 && affordable(n + 1)) n++;
   return Math.max(0, Math.min(n, 100_000));
 }
 

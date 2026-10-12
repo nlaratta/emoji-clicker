@@ -123,6 +123,8 @@ function buildGraph(ctx: AudioContext, vol: Volumes): Graph {
  */
 export class AudioEngine {
   private g: Graph | null = null;
+  /** Built ahead of time by prepare(); becomes `g` on unlock(). */
+  private prepared: Graph | null = null;
   private failed = false;
   private hidden = false;
   private vol: Volumes = { master: 0.8, sfx: 0.8, music: 0.5, muted: false };
@@ -138,25 +140,45 @@ export class AudioEngine {
   private riser: sfx.Riser | null = null;
 
   constructor() {
-    // Deliberately empty: the AudioContext is created in unlock() (autoplay policy).
+    // Deliberately empty: the AudioContext is created in prepare() or unlock().
   }
 
   get ready(): boolean {
     return this.g?.ctx.state === 'running';
   }
 
+  /**
+   * Build the audio graph ahead of time. Creating a page's first AudioContext
+   * blocks for a few hundred milliseconds while the output device opens, so
+   * this runs while the title screen is idle rather than on the first click.
+   * The context stays suspended until unlock() resumes it inside a gesture.
+   */
+  prepare(): void {
+    if (this.failed || this.g || this.prepared) return;
+    try {
+      const Ctor = audioContextCtor();
+      if (!Ctor) {
+        this.failed = true;
+        return;
+      }
+      this.prepared = buildGraph(new Ctor({ latencyHint: 'interactive' }), this.vol);
+    } catch {
+      this.failed = true;
+      this.prepared = null;
+    }
+  }
+
   unlock(): void {
     if (this.failed) return;
     try {
       if (!this.g) {
-        const Ctor = audioContextCtor();
-        if (!Ctor) {
-          this.failed = true;
-          return;
-        }
-        const ctx = new Ctor({ latencyHint: 'interactive' });
-        this.g = buildGraph(ctx, this.vol);
+        this.prepare();
+        if (!this.prepared) return;
+        this.g = this.prepared;
+        this.prepared = null;
+        this.setVolumes(this.vol);
         // iOS: playing a buffer inside the gesture fully unlocks output.
+        const ctx = this.g.ctx;
         const b = ctx.createBufferSource();
         b.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
         b.connect(ctx.destination);

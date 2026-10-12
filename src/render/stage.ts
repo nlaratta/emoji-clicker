@@ -7,6 +7,51 @@ import { Bloom, BloomPass, FinalShader } from './post';
 
 export type QualityTier = 'low' | 'medium' | 'high';
 
+/** Shadow-pass face culling for a caster's material, as WebGLShadowMap picks it. */
+const SHADOW_SIDE: Record<THREE.Side, THREE.Side> = { [THREE.FrontSide]: THREE.BackSide, [THREE.BackSide]: THREE.FrontSide, [THREE.DoubleSide]: THREE.DoubleSide };
+
+/**
+ * Stand-ins for the shadow pass's depth draws. WebGLRenderer.compile() only
+ * builds an object's own material, never the depth material the shadow map
+ * draws a caster with, so those programs would otherwise compile (and stall)
+ * the first time a new caster lands in the shadow map. Mirrors
+ * WebGLShadowMap.getDepthMaterial.
+ */
+function shadowCasters(root: THREE.Object3D): THREE.Group {
+  const group = new THREE.Group();
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || !m.castShadow) return;
+    const src = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial;
+    const depth = (m.customDepthMaterial as THREE.MeshDepthMaterial | undefined) ?? new THREE.MeshDepthMaterial();
+    depth.side = src.shadowSide ?? SHADOW_SIDE[src.side];
+    depth.map = src.map ?? null;
+    depth.alphaMap = src.alphaMap ?? null;
+    depth.alphaTest = src.alphaToCoverage ? 0.5 : src.alphaTest;
+    depth.displacementMap = src.displacementMap ?? null;
+    const inst = m as THREE.InstancedMesh;
+    const proxy = inst.isInstancedMesh ? new THREE.InstancedMesh(m.geometry, depth, 1) : new THREE.Mesh(m.geometry, depth);
+    if (inst.isInstancedMesh) (proxy as THREE.InstancedMesh).instanceColor = inst.instanceColor;
+    proxy.receiveShadow = m.receiveShadow;
+    group.add(proxy);
+  });
+  return group;
+}
+
+/** Resolves once every program has finished linking (polled, never blocking). */
+function whenLinked(programs: THREE.WebGLProgram[]): Promise<void> {
+  const pending = programs as unknown as { isReady(): boolean }[];
+  const deadline = performance.now() + 8000;
+  return new Promise((resolve) => {
+    const poll = (): void => {
+      for (let i = pending.length - 1; i >= 0; i--) if (pending[i].isReady()) pending.splice(i, 1);
+      if (!pending.length || performance.now() > deadline) resolve();
+      else setTimeout(poll, 16);
+    };
+    poll();
+  });
+}
+
 /**
  * Owns the WebGL renderer, scene, camera, lights and post-processing chain.
  * Quality tiers trade resolution, bloom and shadows for frame rate.
@@ -90,6 +135,46 @@ export class Stage {
     }
     if (shadowsChanged) this.renderer.shadowMap.needsUpdate = true;
     this.resize(this.width, this.height);
+  }
+
+  /**
+   * Compile `root`'s shaders ahead of its first frame on screen, in the
+   * background where KHR_parallel_shader_compile allows. A program depends on
+   * where the frame is drawn (the composer's linear target, or the canvas on
+   * the low tier) and whether shadows are on, so it is built for `tier`'s
+   * state, not whatever happens to be bound now; shadow-pass depth programs
+   * are included. Resolves when everything has linked.
+   */
+  precompile(root: THREE.Object3D, tier: QualityTier = this.tier): Promise<void> {
+    const r = this.renderer;
+    const programs = r.info.programs ?? [];
+    const before = new Set(programs);
+    const target = r.getRenderTarget();
+    const shadowMap = r.shadowMap.enabled;
+    const cast = this.key.castShadow;
+    const shadows = tier !== 'low';
+    r.shadowMap.enabled = shadows;
+    this.key.castShadow = shadows;
+    r.setRenderTarget(tier === 'low' ? null : this.composer.renderTarget1);
+    const fog = this.scene.fog;
+    try {
+      r.compile(root, this.camera, this.scene);
+      if (shadows) {
+        // The shadow pass draws through an empty scene: same lights, no fog.
+        this.scene.fog = null;
+        r.compile(shadowCasters(root), this.camera, this.scene);
+      }
+    } finally {
+      this.scene.fog = fog;
+      r.setRenderTarget(target);
+      r.shadowMap.enabled = shadowMap;
+      this.key.castShadow = cast;
+      // compile() leaves its light setup behind, and the next frame's shadow
+      // pass runs before lights are set up again: put the real one back, or
+      // that pass would build depth programs for the other tier's lights.
+      if (shadows !== cast) r.compile(new THREE.Group(), this.camera, this.scene);
+    }
+    return whenLinked(programs.filter((p) => !before.has(p)));
   }
 
   /** Place the key light along `dir` (pointing from the scene toward the light). */

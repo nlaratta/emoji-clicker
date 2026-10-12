@@ -933,6 +933,21 @@ kbd {
   }
 }
 
+/* Invisible first paint of the heavy UI surfaces while the title screen is up (src/ui/warmup.ts). */
+.ui-warmup {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  opacity: 0.01;
+  overflow: hidden;
+  contain: strict;
+}
+
+.ui-warmup,
+.ui-warmup * {
+  pointer-events: none !important;
+}
+
 /* Era title card: the one orchestrated moment */
 .era-card {
   position: absolute;

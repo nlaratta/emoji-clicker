@@ -111,6 +111,26 @@ export interface SettingsCallbacks {
 }
 
 export function openSettings(settings: Settings, cb: SettingsCallbacks): void {
+  const close = (): void => {
+    el.remove();
+    document.removeEventListener('keydown', onKey);
+    cb.sound('close');
+  };
+  const onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') close();
+  };
+  const el = settingsDrawer(settings, cb, close);
+  el.addEventListener('click', (e) => {
+    if (e.target === el) close();
+  });
+  document.addEventListener('keydown', onKey);
+  document.body.append(el);
+  cb.sound('open');
+  (el.querySelector('.sheet button') as HTMLButtonElement | null)?.focus();
+}
+
+/** The settings drawer itself (no listeners on the document, not attached). */
+export function settingsDrawer(settings: Settings, cb: SettingsCallbacks, close: () => void): HTMLElement {
   const s = { ...settings };
   const commit = (): void => cb.change({ ...s });
   const slider = (label: string, key: 'master' | 'sfx' | 'music' | 'shake'): HTMLElement => {
@@ -167,15 +187,7 @@ export function openSettings(settings: Settings, cb: SettingsCallbacks): void {
     cb.hardReset();
   });
 
-  const close = (): void => {
-    el.remove();
-    document.removeEventListener('keydown', onKey);
-    cb.sound('close');
-  };
-  const onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') close();
-  };
-  const el = h('div', { class: 'overlay drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'settings-title' },
+  return h('div', { class: 'overlay drawer', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'settings-title' },
     h('div', { class: 'sheet' },
       h('h2', { id: 'settings-title' }, h('span', { class: 'sheet-title' }, icon('ui-settings'), 'Settings'), h('button', { class: 'key icon-key close', 'aria-label': 'Close settings', onclick: close }, h('span', { class: 'x', 'aria-hidden': 'true' }))),
       h('div', { class: 'section-title' }, h('span', { text: 'Sound' })),
@@ -219,11 +231,4 @@ export function openSettings(settings: Settings, cb: SettingsCallbacks): void {
       h('p', { class: 'fineprint', text: 'Freakmoji Clicker: Reality Breach · Models built procedurally in Blender, icons illustrated with a local image model, sound synthesised in your browser · MIT licensed' }),
     ),
   );
-  el.addEventListener('click', (e) => {
-    if (e.target === el) close();
-  });
-  document.addEventListener('keydown', onKey);
-  document.body.append(el);
-  cb.sound('open');
-  (el.querySelector('.sheet button') as HTMLButtonElement | null)?.focus();
 }
