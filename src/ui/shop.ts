@@ -127,6 +127,15 @@ export class Shop {
     this.select('arsenal', true);
   }
 
+  /** Every tab, for warming up their first paint (see ui/warmup.ts). */
+  static readonly tabs: readonly TabId[] = TABS.map((t) => t.id);
+
+  /** Detach for good (the shared tooltip lives on the body). */
+  dispose(): void {
+    this.tooltip.el.remove();
+    this.root.remove();
+  }
+
   select(id: TabId, silent = false): void {
     this.active = id;
     for (const [tid, b] of this.tabBtns) b.setAttribute('aria-selected', String(tid === id));

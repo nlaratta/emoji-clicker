@@ -8,7 +8,8 @@ import { FallbackScene } from './render/fallback';
 import { AudioEngine } from './audio/engine';
 import { Hud } from './ui/hud';
 import { Shop } from './ui/shop';
-import { Announcer, Toasts, openSettings, showEraCard, showTitle } from './ui/overlays';
+import { Announcer, Toasts, openSettings, settingsDrawer, showEraCard, showTitle, type SettingsCallbacks } from './ui/overlays';
+import { UiWarmup } from './ui/warmup';
 import { h } from './ui/dom';
 import { abilityIcon, featIcon, installIconStyles } from './ui/icons';
 import { ABILITIES, ABILITY_BY_ID, type AbilityId } from './content/abilities';
@@ -452,10 +453,49 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// ── Warm-up while the title screen is up ──
+// Paint the heavy UI surfaces once, invisibly (see ui/warmup.ts), so their
+// first real appearance doesn't stall on GPU pipeline compiles.
+const noSettings: SettingsCallbacks = { change: () => undefined, exportSave: () => '', importSave: () => false, hardReset: () => undefined, sound: () => undefined };
+let warmShop: Shop | null = null;
+const warmup = new UiWarmup([
+  (host) => {
+    const t = new Toasts();
+    host.append(t.root);
+    t.push('Feat unlocked', 'Warming up', 'gold', 2500, 'ui-trophy');
+    t.push('A boss blocks the way', 'Warming up', 'warn', 2500, 'ui-boss');
+    t.push('A golden Freakmoji!', 'Warming up', '', 2500, 'ui-golden');
+  },
+  (host) => showEraCard(host, Math.min(game.state.era + 1, ERAS.length - 1), false),
+  (host) => {
+    host.append(settingsDrawer(settings, noSettings, () => undefined));
+  },
+  (host) => {
+    warmShop = new Shop(game, { sound: () => undefined, collapse: () => undefined });
+    host.append(warmShop.root);
+    return () => warmShop?.dispose();
+  },
+  ...Shop.tabs.map((id) => () => {
+    if (!warmShop) return;
+    warmShop.select(id, true);
+    // Also the states a new run rarely has yet (affordable, owned).
+    warmShop.root.querySelectorAll('.tile, .row, .featured, .node').forEach((el, i) => {
+      if (i === 0) el.classList.add('affordable', 'available');
+      if (i === 1) el.classList.add('owned');
+      if (i < 2) el.classList.remove('unaffordable', 'locked');
+    });
+  }),
+]);
+// Creating the page's first AudioContext blocks while the output device
+// opens; do it now rather than on the Start click.
+if (typeof requestIdleCallback === 'function') requestIdleCallback(() => audio.prepare(), { timeout: 1500 });
+else setTimeout(() => audio.prepare(), 300);
+
 // ── Start ──
 showTitle(
   { returning: loaded.source !== 'new' && game.state.lifetimeGasps > 0, offline, warning: loaded.warning, era: game.state.era },
   () => {
+    warmup.dispose();
     audio.unlock();
     started = true;
     last = simClock = performance.now();

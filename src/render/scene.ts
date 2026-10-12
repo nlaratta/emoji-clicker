@@ -24,6 +24,8 @@ export type PickResult =
 
 const CENTER = new THREE.Vector3(0, 1.25, 0);
 const GOLD = new THREE.Color(1, 0.82, 0.25);
+/** Auto-pokes drawn per event batch: a catch-up after a stall can deliver hundreds at once. */
+const AUTO_POKES_PER_BATCH = 12;
 
 /**
  * The whole 3D presentation. Reads simulation state every frame and reacts
@@ -59,8 +61,14 @@ export class GameScene {
   private lastQuip = -10;
   private recentMax = 1;
   private tierAuto = true;
+  /** The tier has been applied once (at boot). */
+  private tierSet = false;
+  /** A tier change is compiling its shaders before it switches. */
+  private tierPending = false;
+  private tierToken = 0;
   private frameTimes: number[] = [];
   private tierCooldown = 4;
+  private appliedAccent = '';
   private tmpV = new THREE.Vector3();
   private tmpV2 = new THREE.Vector2();
   private freakoutConfetti = 0;
@@ -78,7 +86,7 @@ export class GameScene {
 
     const scene = this.stage.scene;
     this.world = new World({ particles: this.particles, atlas: this.atlas, lite: false }, startEra);
-    this.world.precompile = (root) => this.stage.renderer.compileAsync(root, this.stage.camera, scene);
+    this.world.precompile = (root) => this.stage.precompile(root);
     scene.add(this.world.group);
 
     this.star = new Freakmoji();
@@ -133,7 +141,7 @@ export class GameScene {
       heightAt: (x, z) => this.world.heightAt(x, z),
       kit: () => this.world.kit,
     });
-    this.minions.precompile = (root) => this.stage.renderer.compileAsync(root, this.stage.camera, this.stage.scene);
+    this.minions.precompile = (root) => this.stage.precompile(root);
     scene.add(this.minions.group);
 
     this.rig = new CameraRig(this.stage.camera);
@@ -147,7 +155,30 @@ export class GameScene {
   setQuality(q: 'auto' | QualityTier): void {
     this.tierAuto = q === 'auto';
     const tier: QualityTier = q === 'auto' ? (this.isMobile() ? 'medium' : 'high') : q;
+    if (this.tierSet) {
+      this.switchTier(tier);
+      return;
+    }
+    // At boot: apply straight away (it decides which kit variants load).
+    this.tierSet = true;
     this.applyTier(tier);
+  }
+
+  /**
+   * Change tier once its shaders have compiled in the background. Low
+   * changes nearly every program (no shadows, drawn straight to the canvas),
+   * which would otherwise freeze the game for seconds on a cold cache.
+   */
+  private switchTier(to: QualityTier, then?: () => void): void {
+    const token = ++this.tierToken;
+    this.tierPending = to !== this.stage.tier;
+    if (!this.tierPending) return;
+    void this.stage.precompile(this.stage.scene, to).then(() => {
+      if (token !== this.tierToken) return;
+      this.tierPending = false;
+      this.applyTier(to);
+      then?.();
+    });
   }
 
   private isMobile(): boolean {
@@ -161,6 +192,9 @@ export class GameScene {
     this.minions.setCrewScale(tier === 'low' ? 0.5 : 1);
     this.world.setQuality({ grass: tier === 'high' ? 1 : tier === 'medium' ? 0.55 : 0, shadows: tier !== 'low', lite: tier === 'low' });
     this.minions.setShadows(tier !== 'low');
+    // Everything already in the scene, hidden things included (sweat drops,
+    // the boss shell, the golden twin), so none of it compiles mid-game.
+    void this.stage.precompile(this.stage.scene);
   }
 
   setPrefs(p: MotionPrefs): void {
@@ -225,9 +259,11 @@ export class GameScene {
   // ── Events ──
 
   handle(events: GameEvent[], game: Game): void {
+    let autoPokes = 0;
     for (const e of events) {
       switch (e.type) {
         case 'poke':
+          if (e.source === 'auto' && ++autoPokes > AUTO_POKES_PER_BATCH) break;
           this.onPoke(e, game);
           break;
         case 'haymaker':
@@ -664,26 +700,33 @@ export class GameScene {
     fog.color.copy(T.c.fog);
     fog.near = T.n.fogNear;
     fog.far = T.n.fogFar;
-    if (typeof document !== 'undefined') document.documentElement.style.setProperty('--era-accent', T.accent);
+    // Only on change: the accent restyles the whole UI.
+    if (T.accent !== this.appliedAccent && typeof document !== 'undefined') {
+      this.appliedAccent = T.accent;
+      document.documentElement.style.setProperty('--era-accent', T.accent);
+    }
   }
 
   /** Step quality down when frames are slow, back up when there's headroom. */
   private adaptQuality(dt: number): void {
-    if (!this.tierAuto) return;
+    if (!this.tierAuto || this.tierPending) return;
     this.frameTimes.push(dt);
     if (this.frameTimes.length < 90) return;
-    const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
+    // The median, not the mean: one-off hitches (a shader compile, an era's
+    // kit being built) must not read as a slow device.
+    const typical = this.frameTimes.sort((a, b) => a - b)[this.frameTimes.length >> 1];
     this.frameTimes.length = 0;
     this.tierCooldown -= 1.5;
     if (this.tierCooldown > 0) return;
     const tier = this.stage.tier;
-    if (avg > 1 / 40 && tier !== 'low') {
-      this.applyTier(tier === 'high' ? 'medium' : 'low');
-      this.tierCooldown = 6;
-    } else if (avg < 1 / 90 && tier === 'medium' && !this.isMobile()) {
-      this.applyTier('high');
-      this.tierCooldown = 20;
-    }
+    let next: QualityTier | null = null;
+    if (typical > 1 / 40 && tier !== 'low') next = tier === 'high' ? 'medium' : 'low';
+    else if (typical < 1 / 90 && tier === 'medium' && !this.isMobile()) next = 'high';
+    if (!next) return;
+    const cooldown = next === 'high' ? 20 : 6;
+    this.switchTier(next, () => {
+      this.tierCooldown = cooldown;
+    });
   }
 
   /** Dev/testing: jump the presentation to an era instantly. */

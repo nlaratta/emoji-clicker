@@ -141,6 +141,9 @@ function tuftGeometry(): THREE.BufferGeometry {
 
 let tuft: THREE.BufferGeometry | null = null;
 
+/** Hand the main thread back (a frame can be drawn) between the costly steps of a build. */
+const breathe = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 export class EraKit {
   readonly group = new THREE.Group();
   readonly reveal: RevealUniforms = makeReveal();
@@ -158,7 +161,21 @@ export class EraKit {
   private grassTotal = 0;
   private materials: THREE.Material[] = [];
 
-  constructor(gltf: GLTF, quality: KitQuality) {
+  private constructor() {}
+
+  /**
+   * Assemble a kit from its glTF. Building one takes tens of milliseconds
+   * (baking and merging props, rasterizing the heightfield, scattering
+   * grass), so it runs in steps that yield in between rather than as one
+   * long frame.
+   */
+  static async build(gltf: GLTF, quality: KitQuality): Promise<EraKit> {
+    const kit = new EraKit();
+    await kit.assemble(gltf, quality);
+    return kit;
+  }
+
+  private async assemble(gltf: GLTF, quality: KitQuality): Promise<void> {
     const root = gltf.scene;
     root.updateMatrixWorld(true);
     const opaque: THREE.BufferGeometry[] = [];
@@ -188,6 +205,7 @@ export class EraKit {
       return m;
     };
     let grassmap: THREE.Mesh | null = null;
+    let terrain: THREE.BufferGeometry | null = null;
     const walkable: THREE.Mesh[] = [];
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;
@@ -196,7 +214,7 @@ export class EraKit {
       const node = mesh.userData.role !== undefined || mesh.userData.sway !== undefined || mesh.userData.col !== undefined ? mesh : (mesh.parent ?? mesh);
       const ud = { ...node.userData, ...mesh.userData };
       if (ud.role === 'terrain') {
-        this.setupTerrain(mesh);
+        terrain = this.setupTerrain(mesh);
         return;
       }
       if (ud.role === 'grassmap') {
@@ -231,6 +249,8 @@ export class EraKit {
       }
     });
 
+    await breathe();
+
     const rev = this.reveal;
     const propMat = patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0, envMapIntensity: 0.6 }), { sway: true, rise: true, reveal: rev });
     const metalMat = patchWorldMaterial(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.6, envMapIntensity: 1.2 }), { sway: true, rise: true, reveal: rev });
@@ -260,6 +280,7 @@ export class EraKit {
       inst.name = `inst:${list[0].mesh.name}`;
       this.group.add(inst);
     }
+    await breathe();
     if (opaque.length) {
       const geo = mergeGeometries(opaque.map((g) => (g.index ? g.toNonIndexed() : g)), false)!;
       const mesh = new THREE.Mesh(geo, propMat);
@@ -290,6 +311,7 @@ export class EraKit {
       this.group.add(mesh);
     }
 
+    await breathe();
     for (const a of animRoots) {
       a.updateMatrixWorld(true);
       this.anim.set(a.name, a);
@@ -318,6 +340,11 @@ export class EraKit {
       }
       this.group.add(a);
     }
+    if (terrain) {
+      await breathe();
+      this.rasterizeHeights(terrain);
+    }
+    if (walkable.length) await breathe();
     for (const w of walkable) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(floats(w.geometry.getAttribute('position'), 3), 3));
@@ -325,11 +352,15 @@ export class EraKit {
       g.applyMatrix4(w.matrixWorld);
       this.rasterize(g, true);
     }
-    if (grassmap) this.scatterGrass(grassmap);
+    if (grassmap) {
+      await breathe();
+      this.scatterGrass(grassmap);
+    }
     this.setGrassDensity(quality.grass);
   }
 
-  private setupTerrain(mesh: THREE.Mesh): void {
+  /** The terrain mesh (its heightfield is rasterized separately, see rasterizeHeights). */
+  private setupTerrain(mesh: THREE.Mesh): THREE.BufferGeometry {
     const rev = this.reveal;
     // Quantized (int16) attributes can't be transformed in place: copy to floats first.
     const src = mesh.geometry;
@@ -348,7 +379,7 @@ export class EraKit {
     this.terrain = t;
     this.materials.push(mat);
     this.group.add(t);
-    this.rasterizeHeights(geo);
+    return geo;
   }
 
   /** Rasterize terrain triangles into a regular heightfield around the arena. */
@@ -372,6 +403,9 @@ export class EraKit {
     const b = new THREE.Vector3();
     const c = new THREE.Vector3();
     const n = new THREE.Vector3();
+    const e = new THREE.Vector3();
+    const heights = this.heights;
+    const ground = this.ground;
     for (let t = 0; t < tri; t++) {
       const i0 = idx ? idx.getX(t * 3) : t * 3;
       const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
@@ -380,7 +414,7 @@ export class EraKit {
       b.fromBufferAttribute(pos, i1);
       c.fromBufferAttribute(pos, i2);
       if (top) {
-        n.subVectors(b, a).cross(c.clone().sub(a)).normalize();
+        n.subVectors(b, a).cross(e.subVectors(c, a)).normalize();
         if (Math.abs(n.y) < 0.7) continue;
       }
       const minX = Math.min(a.x, b.x, c.x);
@@ -394,6 +428,10 @@ export class EraKit {
       const gz1 = Math.min(HF_N - 1, Math.floor((maxZ + HF_HALF) / HF_RES));
       const det = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
       if (Math.abs(det) < 1e-9) continue;
+      const tint = col && !top;
+      const r0 = tint ? col.getX(i0) : 0, g0 = tint ? col.getY(i0) : 0, b0 = tint ? col.getZ(i0) : 0;
+      const r1 = tint ? col.getX(i1) : 0, g1 = tint ? col.getY(i1) : 0, b1 = tint ? col.getZ(i1) : 0;
+      const r2 = tint ? col.getX(i2) : 0, g2 = tint ? col.getY(i2) : 0, b2 = tint ? col.getZ(i2) : 0;
       for (let gz = gz0; gz <= gz1; gz++) {
         const z = gz * HF_RES - HF_HALF;
         for (let gx = gx0; gx <= gx1; gx++) {
@@ -405,16 +443,15 @@ export class EraKit {
           const cell = gz * HF_N + gx;
           const y = l1 * a.y + l2 * b.y + l3 * c.y;
           if (top) {
-            if (!(y > this.heights[cell])) continue;
-            this.heights[cell] = y;
+            if (!(y > heights[cell])) continue;
+            heights[cell] = y;
             continue;
           }
-          this.heights[cell] = y;
-          if (col) {
-            for (let ch = 0; ch < 3; ch++) {
-              const get = ch === 0 ? 'getX' : ch === 1 ? 'getY' : 'getZ';
-              this.ground[cell * 3 + ch] = l1 * col[get](i0) + l2 * col[get](i1) + l3 * col[get](i2);
-            }
+          heights[cell] = y;
+          if (tint) {
+            ground[cell * 3] = l1 * r0 + l2 * r1 + l3 * r2;
+            ground[cell * 3 + 1] = l1 * g0 + l2 * g1 + l3 * g2;
+            ground[cell * 3 + 2] = l1 * b0 + l2 * b1 + l3 * b2;
           }
         }
       }
@@ -463,6 +500,8 @@ export class EraKit {
     const a = new THREE.Vector3();
     const b = new THREE.Vector3();
     const c = new THREE.Vector3();
+    const ab = new THREE.Vector3();
+    const ac = new THREE.Vector3();
     let total = 0;
     for (let t = 0; t < tri; t++) {
       const i0 = idx ? idx.getX(t * 3) : t * 3;
@@ -473,7 +512,7 @@ export class EraKit {
       a.fromBufferAttribute(pos, i0);
       b.fromBufferAttribute(pos, i1);
       c.fromBufferAttribute(pos, i2);
-      const area = b.clone().sub(a).cross(c.clone().sub(a)).length() / 2;
+      const area = ab.subVectors(b, a).cross(ac.subVectors(c, a)).length() / 2;
       // Concentrate blades where the camera can see them up close.
       const r = Math.hypot((a.x + b.x + c.x) / 3, (a.z + b.z + c.z) / 3);
       const near = r < 9 ? 1 : Math.pow(9 / r, 1.6);
@@ -524,7 +563,7 @@ export class EraKit {
       a.fromBufferAttribute(pos, i0);
       b.fromBufferAttribute(pos, i1);
       c.fromBufferAttribute(pos, i2);
-      p.copy(a).addScaledVector(b.clone().sub(a), r1).addScaledVector(c.clone().sub(a), r2);
+      p.copy(a).addScaledVector(ab.subVectors(b, a), r1).addScaledVector(ac.subVectors(c, a), r2);
       q.setFromAxisAngle(up, rnd() * Math.PI * 2);
       const sc = 0.55 + rnd() * 0.55;
       s.set(sc, sc * (0.8 + rnd() * 0.5), sc);

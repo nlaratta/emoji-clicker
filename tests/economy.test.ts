@@ -17,6 +17,7 @@ import {
 import { baseModifiers } from '../src/sim/modifiers';
 import { createInitialState } from '../src/sim/state';
 import { fmt, fmtTime, setNotation } from '../src/core/format';
+import { ECON_MAX } from '../src/core/math';
 
 const finitePositive = (n: number): boolean => Number.isFinite(n) && n > 0;
 
@@ -99,6 +100,17 @@ describe('producer pricing', () => {
         const n = maxAffordable(p, owned, m, bank);
         if (n > 0) expect(producerCost(p, owned, m, n)).toBeLessThanOrEqual(bank);
         expect(producerCost(p, owned, m, n + 1)).toBeGreaterThan(bank);
+      }
+    }
+  });
+
+  it('maxAffordable finishes when the bank and prices are clamped at the economy cap', () => {
+    // A saturated bank used to make the search loop forever (the shop's Max mode froze the page).
+    for (const p of PRODUCERS) {
+      for (const owned of [0, 400, 1200, 1800]) {
+        const n = maxAffordable(p, owned, m, ECON_MAX);
+        expect(Number.isInteger(n) && n >= 0 && n <= 100_000).toBe(true);
+        if (n > 0) expect(producerCost(p, owned, m, n)).toBeLessThan(ECON_MAX);
       }
     }
   });
